@@ -1,0 +1,20 @@
+# Your actual GWR Rewards balance. Fill this in from "My Account > Rewards"
+# on gwr.com — the calculator uses expiry_date to filter out trips whose
+# booking window (or travel date) falls after the reward has lapsed.
+#
+# expiry_date: normally 365 days from activation for Silver/Gold rewards.
+#              Leave as null until confirmed — the calculator will warn
+#              instead of silently assuming a date.
+
+rewards:
+  - class: standard
+    tier_source: silver
+    activated_date: null     # e.g. "2026-06-01"
+    expiry_date: null        # e.g. "2027-06-01"
+    status: unredeemed
+
+  - class: first
+    tier_source: gold
+    activated_date: null
+    expiry_date: null
+    status: unredeemed

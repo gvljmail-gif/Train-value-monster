@@ -1,0 +1,116 @@
+# Candidate reward-journey trips, all starting from Reading.
+#
+# fare_low_gbp / fare_high_gbp are ROUGH, RESEARCHED ESTIMATES for a one-way
+# Anytime/Advance Single in the given class — not live prices. This sandbox
+# cannot reach gwr.com to pull live fares, so treat these as "which trip is
+# probably worth more," not exact numbers. Always verify the real price on
+# gwr.com/the app when the booking window opens before you commit the reward.
+#
+# day_type: "weekday" -> 24-week booking window, "weekend" -> 12-week window
+# class: which reward this trip is a candidate for ("standard", "first", or
+#        "either" if you'd consider using either reward on it)
+
+trips:
+  - name: "Cardiff — Wales v Australia (Nations Championship)"
+    origin: "Reading"
+    destination: "Cardiff Central"
+    travel_date: "2026-11-21"
+    day_type: weekend
+    class: either
+    fare_low_gbp: 45
+    fare_high_gbp: 90
+    notes: >
+      Kick-off 20:10. GWR expects Cardiff match days to be extremely busy;
+      pay-as-you-go isn't available and reservations are effectively
+      mandatory, so Advance allocation is contested — book as soon as the
+      window opens. High-priority trip given the fixed match date.
+
+  - name: "Cardiff — Six Nations: Wales v Ireland"
+    origin: "Reading"
+    destination: "Cardiff Central"
+    travel_date: "2027-02-20"
+    day_type: weekend
+    class: either
+    fare_low_gbp: 45
+    fare_high_gbp: 95
+    notes: >
+      Six Nations weekends see the highest demand of the rugby calendar in
+      Cardiff — historically the priciest Anytime/Advance fares and fastest
+      sellouts of any fixture on this list.
+
+  - name: "Cardiff — Six Nations: Wales v England"
+    origin: "Reading"
+    destination: "Cardiff Central"
+    travel_date: "2027-03-06"
+    day_type: weekend
+    class: either
+    fare_low_gbp: 50
+    fare_high_gbp: 100
+    notes: >
+      Wales v England is consistently the highest-demand Six Nations
+      fixture in Cardiff — likely the single priciest matchday fare on
+      this list, but also the hardest to secure a seat for.
+
+  - name: "Cornwall — Penzance"
+    origin: "Reading"
+    destination: "Penzance"
+    travel_date: "2026-09-19"
+    day_type: weekend
+    class: first
+    fare_low_gbp: 95
+    fare_high_gbp: 160
+    notes: >
+      ~4h45m, the longest journey on this list and typically the highest
+      "guaranteed" Anytime fare from Reading — a strong First-class
+      fallback if a rugby date doesn't work out or sells out. Placeholder
+      date: pick an actual weekend and update travel_date.
+
+  - name: "Cornwall — Newquay"
+    origin: "Reading"
+    destination: "Newquay"
+    travel_date: "2026-08-29"
+    day_type: weekend
+    class: either
+    fare_low_gbp: 85
+    fare_high_gbp: 150
+    notes: >
+      Similar distance/value profile to Penzance; direct summer services
+      are seasonal so check the timetable before committing to a date.
+      Placeholder date: pick an actual weekend and update travel_date.
+
+  - name: "Devon — Plymouth"
+    origin: "Reading"
+    destination: "Plymouth"
+    travel_date: "2026-09-12"
+    day_type: weekend
+    class: standard
+    fare_low_gbp: 65
+    fare_high_gbp: 100
+    notes: >
+      ~2h30-3h, solid mid-distance value if Cornwall is too far for the
+      trip you have in mind. Placeholder date: update travel_date.
+
+  - name: "Devon — Exeter St Davids"
+    origin: "Reading"
+    destination: "Exeter St Davids"
+    travel_date: "2026-09-05"
+    day_type: weekend
+    class: standard
+    fare_low_gbp: 45
+    fare_high_gbp: 70
+    notes: >
+      ~1h45m, decent value and a shorter day out. Placeholder date: update
+      travel_date.
+
+  - name: "Bath Spa"
+    origin: "Reading"
+    destination: "Bath Spa"
+    travel_date: "2026-08-30"
+    day_type: weekend
+    class: standard
+    fare_low_gbp: 20
+    fare_high_gbp: 35
+    notes: >
+      ~40 min — lowest value option on this list. Only use a reward here if
+      you specifically want a short trip; you'll extract far more value
+      from any of the other candidates.
