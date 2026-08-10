@@ -16,46 +16,59 @@ trips:
     destination: "Cardiff Central"
     travel_date: "2026-11-21"
     day_type: weekend
-    class: either
+    recommended_for: "standard"
+    confirmed: true
+    class: standard
     fare_low_gbp: 45
     fare_high_gbp: 90
     notes: >
-      Kick-off 20:10. GWR expects Cardiff match days to be extremely busy;
-      pay-as-you-go isn't available and reservations are effectively
-      mandatory, so Advance allocation is contested — book as soon as the
-      window opens. High-priority trip given the fixed match date.
+      RECOMMENDED for the Standard reward (expires 25 Feb 2027) — travel
+      date sits over 3 months before expiry, comfortable margin. Kick-off
+      20:10. GWR expects Cardiff match days to be extremely busy; pay-as-
+      you-go isn't available and reservations are effectively mandatory,
+      so Advance allocation is contested — book as soon as the window
+      opens.
 
   - name: "Cardiff — Six Nations: Wales v Ireland"
     origin: "Reading"
     destination: "Cardiff Central"
     travel_date: "2027-02-20"
     day_type: weekend
-    class: either
+    recommended_for: null   # backup only, see notes
+    confirmed: true
+    class: standard
     fare_low_gbp: 45
     fare_high_gbp: 95
     notes: >
-      Six Nations weekends see the highest demand of the rugby calendar in
-      Cardiff — historically the priciest Anytime/Advance fares and fastest
-      sellouts of any fixture on this list.
+      BACKUP only — if used with the Standard reward this is just 5 days
+      before its 25 Feb 2027 expiry, uncomfortably tight if the fixture
+      moves or booking slips. Prefer the Australia trip for Standard and
+      the England trip for First; only fall back to this one if Australia
+      doesn't work out. Six Nations weekends see the highest demand of the
+      rugby calendar in Cardiff.
 
   - name: "Cardiff — Six Nations: Wales v England"
     origin: "Reading"
     destination: "Cardiff Central"
     travel_date: "2027-03-06"
     day_type: weekend
-    class: either
+    recommended_for: "first"
+    confirmed: true
+    class: first
     fare_low_gbp: 50
     fare_high_gbp: 100
     notes: >
-      Wales v England is consistently the highest-demand Six Nations
-      fixture in Cardiff — likely the single priciest matchday fare on
-      this list, but also the hardest to secure a seat for.
+      RECOMMENDED for the First reward (expires 20 Mar 2027) — 2-week
+      margin before expiry, and Wales v England is consistently the
+      highest-demand Six Nations fixture in Cardiff, likely the single
+      priciest matchday fare on this list.
 
   - name: "Cornwall — Penzance"
     origin: "Reading"
     destination: "Penzance"
     travel_date: "2026-09-19"
     day_type: weekend
+    confirmed: false   # placeholder date — update travel_date to a real one
     class: first
     fare_low_gbp: 95
     fare_high_gbp: 160
@@ -70,6 +83,7 @@ trips:
     destination: "Newquay"
     travel_date: "2026-08-29"
     day_type: weekend
+    confirmed: false   # placeholder date — update travel_date to a real one
     class: either
     fare_low_gbp: 85
     fare_high_gbp: 150
@@ -83,6 +97,7 @@ trips:
     destination: "Plymouth"
     travel_date: "2026-09-12"
     day_type: weekend
+    confirmed: false   # placeholder date — update travel_date to a real one
     class: standard
     fare_low_gbp: 65
     fare_high_gbp: 100
@@ -95,6 +110,7 @@ trips:
     destination: "Exeter St Davids"
     travel_date: "2026-09-05"
     day_type: weekend
+    confirmed: false   # placeholder date — update travel_date to a real one
     class: standard
     fare_low_gbp: 45
     fare_high_gbp: 70
@@ -107,6 +123,7 @@ trips:
     destination: "Bath Spa"
     travel_date: "2026-08-30"
     day_type: weekend
+    confirmed: false   # placeholder date — update travel_date to a real one
     class: standard
     fare_low_gbp: 20
     fare_high_gbp: 35

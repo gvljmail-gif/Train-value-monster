@@ -9,12 +9,12 @@
 rewards:
   - class: standard
     tier_source: silver
-    activated_date: null     # e.g. "2026-06-01"
-    expiry_date: null        # e.g. "2027-06-01"
+    activated_date: null      # unknown; confirm in My Account > Rewards if it matters
+    expiry_date: "2027-02-25"
     status: unredeemed
 
   - class: first
     tier_source: gold
     activated_date: null
-    expiry_date: null
+    expiry_date: "2027-03-20"
     status: unredeemed

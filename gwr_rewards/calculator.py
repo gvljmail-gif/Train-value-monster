@@ -99,6 +99,8 @@ def main() -> int:
                 "fare_range": f"£{trip['fare_low_gbp']}-{trip['fare_high_gbp']}",
                 "notes": trip.get("notes", "").strip(),
                 "warning": expired_warning,
+                "confirmed": trip.get("confirmed", True),
+                "recommended_for": trip.get("recommended_for"),
             })
 
     if args.upcoming is not None:
@@ -115,14 +117,31 @@ def main() -> int:
     print("-" * 100)
     for r in rows:
         status = "OPEN NOW" if r["days_until_open"] <= 0 else str(r["days_until_open"])
+        placeholder = "" if r["confirmed"] else "  [placeholder date — not a real plan yet]"
         print(f"{r['trip'][:45]:45} {r['class']:8} {str(r['travel_date']):10} "
-              f"{str(r['opens']):10} {status:7} {r['fare_range']:10}{r['warning']}")
+              f"{str(r['opens']):10} {status:7} {r['fare_range']:10}{r['warning']}{placeholder}")
 
     print()
-    print("Best value per class (highest estimated fare among eligible trips):")
+    print("Recommended allocation (explicit picks in routes.yaml, factoring expiry margin —")
+    print("not just raw fare — see notes per trip):")
+    any_recommended = False
     for cls in ("standard", "first"):
-        candidates = [r for r in rows if r["class"] == cls]
+        picks = [r for r in rows if r["class"] == cls and r["recommended_for"] == cls]
+        if not picks:
+            continue
+        any_recommended = True
+        for r in picks:
+            print(f"  {cls:8} -> {r['trip']} ({r['fare_range']}, "
+                  f"window opens {r['opens']}, travel {r['travel_date']})")
+    if not any_recommended:
+        print("  (none marked yet — set recommended_for on a trip in routes.yaml)")
+
+    print()
+    print("For reference, highest estimated fare among CONFIRMED trips (ignores expiry margin):")
+    for cls in ("standard", "first"):
+        candidates = [r for r in rows if r["class"] == cls and r["confirmed"]]
         if not candidates:
+            print(f"  {cls:8} -> no confirmed trips yet — see placeholder rows above")
             continue
         best = max(candidates, key=lambda r: r["avg_fare"])
         print(f"  {cls:8} -> {best['trip']} ({best['fare_range']}, "
