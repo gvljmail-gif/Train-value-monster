@@ -1,0 +1,25 @@
+# Tracks match-ticket status separately from the GWR travel reward — these
+# are ordinary Principality Stadium tickets bought from WRU/Ticketmaster,
+# not part of the reward journey redemption.
+#
+# NOTE: wru.wales, my.wru.wales, and ticketmaster.co.uk are all blocked by
+# this sandbox's network egress policy, same as the rail booking sites — so
+# the scheduled check-in below cannot poll live seat availability. It falls
+# back to a best-effort web search for news signals plus a manual-check
+# reminder. Update `status` here once you've actually bought tickets, so
+# the reminder can stop nagging.
+
+tickets:
+  - event: "Wales v Australia (Nations Championship)"
+    venue: "Principality Stadium, Cardiff"
+    date: "2026-11-21"
+    kickoff: "20:10"
+    on_sale_since: "2026-04-24"
+    price_bands_gbp: "38 (Cat E) - 78 (Cat A+)"
+    source: "https://www.wru.wales/tickets/ and https://my.wru.wales/"
+    status: not_booked   # set to "booked" once purchased
+    last_checked: "2026-09-02"
+    notes: >
+      As of early Sept 2026, user reports plenty of availability on the
+      WRU ticket site. Not planning to book for a little while, so this is
+      being tracked with a tapering check-in schedule rather than urgency.
