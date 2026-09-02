@@ -66,6 +66,14 @@ gwr.com, since exact expiry dates and terms live there, not here.
   single "return" product.
 - Advance Singles are tied to a specific train/date — no changing without a
   fee, so pick real dates you can commit to.
+- **Both singles (outbound + return) must be booked together in one gwr.com
+  session** — the code+PIN is consumed across that single booking, not
+  reusable across two separate transactions. Confirmed via GWR support and
+  forum reports for the Silver/Gold free-return rewards specifically. This
+  matters a lot in practice: you can't lock in an easy outbound leg early
+  and defer the harder return leg — you have to know (and book) both before
+  you start, which for an event-day trip means waiting until the real
+  post-event train times are published.
 
 **Booking windows (the part that matters for timing):**
 - Weekday travel: Advance fares open **up to 24 weeks** before travel.
