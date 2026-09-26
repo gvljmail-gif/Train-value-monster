@@ -42,7 +42,7 @@ HEAD_FILL = fill("1F4E79")
 GROUP_FILLS = {
     "Patient": fill("DDEBF7"),
     "Auto (don't type)": fill("EDEDED"),
-    "Appointments: enter date seen, DNA or N/A": fill("E2EFDA"),
+    "Appointments: enter date booked, DNA or N/A": fill("E2EFDA"),
     "Actions: enter date booked/due, then 'Done'": fill("FCE4D6"),
     "Notes & audit": fill("FFF2CC"),
 }
@@ -54,11 +54,12 @@ ACTIONS = ["GTT booked", "Anti-D ordered", "BP fortnightly", "Bloods needed", "I
 COLUMNS = (
     [("Name", 22, "Patient"), ("NHS number", 14, "Patient"), ("DOB", 11, "Patient"),
      ("Parity", 8, "Patient"), ("MLC/CLC", 9, "Patient"), ("EDD", 11, "Patient"),
-     ("Booking date", 11, "Patient"), ("Status", 13, "Patient"),
+     ("Status", 13, "Patient"),
      ("Gestation today", 10, "Auto (don't type)"), ("Overdue", 9, "Auto (don't type)"),
      ("Due in 7 days", 9, "Auto (don't type)"), ("Next appt", 9, "Auto (don't type)"),
-     ("Next appt due", 11, "Auto (don't type)")]
-    + [(a, 10, "Appointments: enter date seen, DNA or N/A") for a in APPTS]
+     ("Next appt due", 11, "Auto (don't type)"),
+     ("Booking date", 11, "Appointments: enter date booked, DNA or N/A")]
+    + [(a, 10, "Appointments: enter date booked, DNA or N/A") for a in APPTS]
     + [(a, 11, "Actions: enter date booked/due, then 'Done'") for a in ACTIONS]
     + [("Info", 40, "Notes & audit"), ("Last updated by", 15, "Notes & audit"),
        ("Last updated on", 12, "Notes & audit")]
@@ -66,6 +67,7 @@ COLUMNS = (
 COL = {h: get_column_letter(i + 1) for i, (h, _, _) in enumerate(COLUMNS)}
 LAST_COL = get_column_letter(len(COLUMNS))
 A1, AN = COL[APPTS[0]], COL[APPTS[-1]]       # appointment block
+BOOK = COL["Booking date"]                   # sits directly before 16/40
 X1, XN = COL[ACTIONS[0]], COL[ACTIONS[-1]]   # action block
 EDD, STATUS, NAME = COL["EDD"], COL["Status"], COL["Name"]
 UPD_ON, UPD_BY, NHS = COL["Last updated on"], COL["Last updated by"], COL["NHS number"]
@@ -77,11 +79,6 @@ DATE_FMT = "dd/mm/yyyy"
 def active(r):
     """Row has a patient and is Active (blank status counts as Active)."""
     return f'AND(${NAME}{r}<>"",OR(${STATUS}{r}="",${STATUS}{r}="Active"))'
-
-
-def due(r, col_ref):
-    """Due date of an appointment column: EDD minus the weeks remaining to 40."""
-    return f"(${EDD}{r}-(40-VALUE(LEFT({col_ref},2)))*7)"
 
 
 def build(path, sample=False):
@@ -125,8 +122,8 @@ def build(path, sample=False):
     ws["G2"].font = Font(name=FONT, size=12, bold=True, color=AMBER_TXT)
     ws["H2"].font = Font(name=FONT, size=12, bold=True, color=BLUE_TXT)
 
-    legend = [("Overdue / date passed", RED, RED_TXT), ("Due in next 7 days", AMBER, AMBER_TXT),
-              ("Done", GREEN, GREEN_TXT), ("N/A or not active", GREY, GREY_TXT),
+    legend = [("Overdue / next appt not booked", RED, RED_TXT), ("Due in next 7 days", AMBER, AMBER_TXT),
+              ("Seen / done", GREEN, GREEN_TXT), ("N/A or not active", GREY, GREY_TXT),
               ("Updated since your date", BLUE, BLUE_TXT), ("NHS no. invalid", ORANGE, "833C0B"),
               ("NHS no. duplicate", PURPLE, "403151")]
     ws[f"{A1}1"] = "Key:"
@@ -174,27 +171,30 @@ def build(path, sample=False):
 
         act = active(r)
         appts = f"${A1}{r}:${AN}{r}"
+        chain = f"${BOOK}{r}:${AN}{r}"          # booking date + appointments, in date order
         acts = f"${X1}{r}:${XN}{r}"
-        d_arr = f"(${EDD}{r}-(40-VALUE(LEFT({appt_hdr},2)))*7)"
+        # Next appointment not booked: the latest date entered has passed, a slot is still
+        # empty and there's no DNA (a DNA is counted on its own).
+        not_booked = (f'AND(MAX({chain})>0,MAX({chain})<TODAY(),COUNTBLANK({appts})>0,'
+                      f'COUNTIF({appts},"DNA")=0)')
         ws[f"{COL['Gestation today']}{r}"] = (
             f'=IF(OR(NOT({act}),${EDD}{r}=""),"",'
             f'INT((TODAY()-${EDD}{r}+280)/7)&"+"&MOD(TODAY()-${EDD}{r}+280,7))')
         ws[f"{COL['Overdue']}{r}"] = (
-            f'=IF(NOT({act}),"",'
-            f'IF(${EDD}{r}="",0,SUMPRODUCT(({appts}="")*({d_arr}<TODAY())))'
+            f'=IF(NOT({act}),"",IF({not_booked},1,0)'
             f'+COUNTIF({appts},"DNA")+COUNTIF({acts},"<"&TODAY()))')
         ws[f"{COL['Due in 7 days']}{r}"] = (
-            f'=IF(NOT({act}),"",'
-            f'IF(${EDD}{r}="",0,SUMPRODUCT(({appts}="")*({d_arr}>=TODAY())*({d_arr}<=TODAY()+7)))'
+            f'=IF(NOT({act}),"",COUNTIFS({chain},">="&TODAY(),{chain},"<="&TODAY()+7)'
             f'+COUNTIFS({acts},">="&TODAY(),{acts},"<="&TODAY()+7))')
-        nested = '"All done"'
-        for a in reversed(APPTS):
-            c = COL[a]
-            nested = f'IF({c}{r}="",{c}${HEADER_ROW},{nested})'
-        ws[f"{COL['Next appt']}{r}"] = f'=IF(OR(NOT({act}),${EDD}{r}=""),"",{nested})'
-        nxt = f"${COL['Next appt']}{r}"
+        nd = f"${COL['Next appt due']}{r}"
+        ws[f"{COL['Next appt']}{r}"] = (
+            f'=IF(NOT({act}),"",IF({nd}<>"",IF({nd}=${BOOK}{r},"Booking",'
+            f'INDEX({appt_hdr},MATCH({nd},{appts},0))),'
+            f'IF(COUNTIF({appts},"DNA")>0,"Rebook DNA",IF(COUNTBLANK({appts})=0,"All done",'
+            f'IF(MAX({chain})>0,"Not booked","")))))')
+        # earliest date on or after today = next booked appointment
         ws[f"{COL['Next appt due']}{r}"] = (
-            f'=IF(OR({nxt}="",{nxt}="All done"),"",{due(r, nxt)})')
+            f'=IF(NOT({act}),"",IFERROR(SMALL({chain},COUNTIF({chain},"<"&TODAY())+1),""))')
 
     ws.freeze_panes = f"B{FIRST}"
 
@@ -211,12 +211,16 @@ def build(path, sample=False):
     r = FIRST
     act = active(r)
     appt_area = f"{A1}{r}:{AN}{LAST}"
-    d = due(r, f"{A1}${HEADER_ROW}")
+    prev = get_column_letter(ws[f"{A1}1"].column - 1)   # relative: the column to the left
+    chain = f"${BOOK}{r}:${AN}{r}"
     cf(appt_area, f'{A1}{r}="N/A"', GREY, GREY_TXT)
     cf(appt_area, f'AND({act},{A1}{r}="DNA")', RED, RED_TXT, bold=True)
-    cf(appt_area, f'AND({act},{A1}{r}="",ISNUMBER(${EDD}{r}),{d}<TODAY())', RED, RED_TXT)
-    cf(appt_area, f'AND({act},{A1}{r}="",ISNUMBER(${EDD}{r}),{d}>=TODAY(),{d}<=TODAY()+7)', AMBER, AMBER_TXT)
-    cf(appt_area, f'{A1}{r}<>""', GREEN, GREEN_TXT)
+    # first empty slot after the last entry, once every date entered is in the past
+    cf(appt_area, f'AND({act},{A1}{r}="",{prev}{r}<>"",{prev}{r}<>"DNA",'
+                  f'MAX({chain})>0,MAX({chain})<TODAY())', RED, RED_TXT)
+    cf(f"{BOOK}{r}:{AN}{LAST}", f'AND({act},ISNUMBER({BOOK}{r}),{BOOK}{r}>=TODAY(),{BOOK}{r}<=TODAY()+7)',
+       AMBER, AMBER_TXT, bold=True)
+    cf(appt_area, f'AND(ISNUMBER({A1}{r}),{A1}{r}<TODAY())', GREEN, GREEN_TXT)
 
     act_area = f"{X1}{r}:{XN}{LAST}"
     cf(act_area, f'{X1}{r}="N/A"', GREY, GREY_TXT)
@@ -227,7 +231,8 @@ def build(path, sample=False):
     ov, sn, nd = COL["Overdue"], COL["Due in 7 days"], COL["Next appt due"]
     cf(f"{ov}{r}:{ov}{LAST}", f'AND(ISNUMBER({ov}{r}),{ov}{r}>0)', RED, RED_TXT, bold=True)
     cf(f"{sn}{r}:{sn}{LAST}", f'AND(ISNUMBER({sn}{r}),{sn}{r}>0)', AMBER, AMBER_TXT, bold=True)
-    cf(f"{nd}{r}:{nd}{LAST}", f'AND(ISNUMBER({nd}{r}),{nd}{r}<TODAY())', RED, RED_TXT, bold=True)
+    na = COL["Next appt"]
+    cf(f"{na}{r}:{na}{LAST}", f'OR({na}{r}="Not booked",{na}{r}="Rebook DNA")', RED, RED_TXT, bold=True)
     cf(f"{nd}{r}:{nd}{LAST}", f'AND(ISNUMBER({nd}{r}),{nd}{r}<=TODAY()+7)', AMBER, AMBER_TXT, bold=True)
     cf(f"{EDD}{r}:{EDD}{LAST}", f'AND({act},ISNUMBER({EDD}{r}),{EDD}{r}<TODAY())', AMBER, AMBER_TXT, bold=True)
 
@@ -271,9 +276,10 @@ def build(path, sample=False):
     dv(f"{A1}{FIRST}:{AN}{LAST}", type="custom",
        formula1=f'OR({A1}{FIRST}="",ISNUMBER({A1}{FIRST}),{A1}{FIRST}="DNA",{A1}{FIRST}="N/A")',
        errorStyle="warning", showErrorMessage=True, errorTitle="Appointment",
-       error="Expected a date seen, DNA or N/A.", showInputMessage=True,
-       promptTitle="Appointment", prompt="Date seen, DNA or N/A. Leave blank until it happens: "
-                                         "blank turns amber a week before it's due and red once overdue.")
+       error="Expected a date, DNA or N/A.", showInputMessage=True,
+       promptTitle="Appointment", prompt="Enter the date once it's booked (usually at the previous "
+                                         "appointment). DNA if missed: replace with the new date once "
+                                         "rebooked. N/A if not needed.")
     dv(f"{X1}{FIRST}:{XN}{LAST}", type="custom", formula1="TRUE", showInputMessage=True,
        promptTitle="Action", prompt="Enter the date booked/due. Once complete, type Done (or e.g. "
                                     "'Done 12/3 SW'). N/A if not needed.")
@@ -345,7 +351,7 @@ def build(path, sample=False):
         ("", "Nothing here uses macros, so it works in Excel desktop, Excel Online and Teams, including "
              "with several people editing at once."),
         ("s", "Daily use"),
-        ("", "1. Sort or filter the 'Overdue' or 'Next appt due' column to see who needs something first. "
+        ("", "1. Sort or filter the 'Overdue', 'Next appt' or 'Next appt due' column to see who needs something first. "
              "The counts along the top show the totals."),
         ("", "2. When you change a row, pick your name in 'Last updated by' and press Ctrl + ; in "
              "'Last updated on'. That's the only way anyone can see you touched it."),
@@ -353,14 +359,19 @@ def build(path, sample=False):
         ("", "4. To see what's changed since you last looked: type that date in the yellow box at the top "
              "of Caseload (cell B2). Changed rows turn blue and the 'Updated since' count shows how many."),
         ("s", "What to type where"),
-        ("", "• Patient columns (Name to Status): as now. EDD drives all the appointment due dates. "
+        ("", "• Patient columns (Name to Status): as now. EDD drives the gestation. "
              "Leave Status blank or set Active while pregnant. Setting Delivered, Transferred out or Care ended "
              "greys out the row and stops its flags."),
         ("", "• Grey columns (Gestation, Overdue, Due in 7 days, Next appt, Next appt due) are calculated, "
              "so don't type in them."),
-        ("", "• Appointment columns (16/40 to 40/40): enter the date seen, DNA or N/A. Leave blank until it "
-             "happens. A blank one turns amber in the week before it's due (EDD minus weeks to 40) and red once "
-             "the due date has passed. DNA stays red until you enter a date."),
+        ("", "• Booking date and appointments (16/40 to 40/40): enter each date when it's booked. 16/40 is "
+             "added at booking, 25/40 at the 16/40 appointment, and so on. Empty future columns are fine."),
+        ("", "  – Amber: the appointment is in the next 7 days. Green: the date has passed (seen). "
+             "Plain: booked, more than a week away."),
+        ("", "  – Red empty cell: the last appointment has passed and the next one hasn't been added yet. "
+             "Only the first empty slot turns red, and N/A slots are skipped (e.g. 25/40 or 31/40 for multips)."),
+        ("", "  – DNA: type DNA over the date. It stays red, and 'Next appt' says Rebook DNA, until you "
+             "replace it with the rebooked date. Note the DNA in Info or the Log so it isn't lost."),
         ("", "• Action columns (GTT, Anti-D, BP, Bloods, IOL): enter the date it's booked or due. It turns amber "
              "within 7 days and red once the date has passed. When it's done, overwrite it with 'Done' "
              "(or 'Done 12/3 SW'), which turns it green. N/A turns it grey."),
@@ -368,15 +379,16 @@ def build(path, sample=False):
              "appears twice."),
         ("", "• EDD turns amber if it has passed and the patient is still Active, as a reminder to update Status."),
         ("s", "Colour key"),
-        ("red", "Red: overdue, DNA, or a date that has passed and isn't marked Done"),
+        ("red", "Red: next appointment not booked, DNA, or an action date that has passed and isn't marked Done"),
         ("amber", "Amber: due in the next 7 days"),
         ("green", "Green: done / seen"),
         ("grey", "Grey: N/A, or the patient is no longer active"),
         ("blue", "Blue: row updated on or after the date in cell B2"),
         ("s", "Example row (format only, fictional)"),
-        ("", "Jane Example | 943 476 5919 | 02/05/1994 | G2P1 | MLC | 10/01/2027 | 18/06/2026 | (Status blank) | "
-             "16/40: 09/08/2026 | 25/40: DNA | GTT booked: 14/10/2026 | Anti-D ordered: Done 20/09 | "
-             "BP fortnightly: N/A | Last updated by: (your name) | Last updated on: 26/09/2026"),
+        ("", "Jane Example | 943 476 5919 | 02/05/1994 | G2P1 | MLC | 10/01/2027 | (Status blank) | "
+             "Booking date: 18/06/2026 | 16/40: 11/08/2026 | 25/40: N/A | 28/40: 01/10/2026 | "
+             "GTT booked: 14/10/2026 | Anti-D ordered: Done 20/09 | BP fortnightly: N/A | "
+             "Last updated by: (your name) | Last updated on: 26/09/2026"),
         ("s", "Seeing exactly who changed what"),
         ("", "If the file is stored on SharePoint, OneDrive or Teams (not a shared drive), Excel keeps a full "
              "audit trail automatically:"),
@@ -386,8 +398,8 @@ def build(path, sample=False):
         ("", "• @mentioning a colleague in a comment (Review ▸ New Comment) sends them an email."),
         ("", "The 'Last updated by' columns and the Log are the human-readable layer on top of that."),
         ("s", "Adding rows"),
-        ("", f"The table is pre-formatted for {ROWS} patients. Don't insert columns inside the "
-             "appointment block, because the due dates are worked out from the '16/40'-style headers."),
+        ("", f"The table is pre-formatted for {ROWS} patients. Don't insert or reorder columns "
+             "between Booking date and 40/40, because the red 'not booked' check reads them left to right."),
         ("s", "Information governance"),
         ("", "This holds patient-identifiable data. Keep it in the approved team location with access limited "
              "to the team, and follow your trust's IG policy."),
@@ -416,21 +428,26 @@ def build(path, sample=False):
 def add_sample(ws):
     """Fictional rows used only to test flags (never in the delivered file)."""
     t = date.today()
-    # (name, nhs, edd, status, appts seen count, extra dict)
+    d = lambda n: t + timedelta(days=n)
     rows = [
-        ("Test Overdue", "9434765919", t + timedelta(days=7 * 12), "", 1, {"GTT booked": t - timedelta(days=2)}),
-        ("Test DueSoon", "9434765918", t + timedelta(days=7 * 12 + 3), "", 2, {"Anti-D ordered": t + timedelta(days=4)}),
-        ("Test AllDone", "943 476 5919", t - timedelta(days=3), "Delivered", 8, {"IOL booked": "Done"}),
-        ("Test Clear", "4010232137", t + timedelta(days=7 * 30), "Active", 0, {"BP fortnightly": "N/A"}),
+        ("Test NotBooked", "9434765919", {"Booking date": d(-120), "16/40": d(-60), "25/40": d(-10),
+                                          "GTT booked": d(-2)}),
+        ("Test Upcoming", "9434765918", {"Booking date": d(-100), "16/40": d(-40), "25/40": "N/A",
+                                         "28/40": d(3), "Anti-D ordered": d(4)}),
+        ("Test Delivered", "943 476 5919", {"Status": "Delivered", "Booking date": d(-250),
+                                            **{a: d(-200 + i * 20) for i, a in enumerate(APPTS)},
+                                            "IOL booked": "Done"}),
+        ("Test JustBooked", "4010232137", {"Booking date": d(5), "BP fortnightly": "N/A"}),
+        ("Test NASkip", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": "N/A"}),
+        ("Test DNA", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": "DNA"}),
+        ("Test BookedFar", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": d(20)}),
     ]
-    for i, (name, nhs, edd, status, seen, extra) in enumerate(rows):
+    for i, (name, nhs, vals) in enumerate(rows):
         r = FIRST + i
-        ws[f"{NAME}{r}"], ws[f"{NHS}{r}"], ws[f"{EDD}{r}"] = name, nhs, edd
-        if status:
-            ws[f"{STATUS}{r}"] = status
-        for a in APPTS[:seen]:
-            ws[f"{COL[a]}{r}"] = edd - timedelta(days=(40 - int(a[:2])) * 7)
-        for k, v in extra.items():
+        ws[f"{NAME}{r}"], ws[f"{EDD}{r}"] = name, d(84)
+        if nhs:
+            ws[f"{NHS}{r}"] = nhs
+        for k, v in vals.items():
             ws[f"{COL[k]}{r}"] = v
         ws[f"{UPD_ON}{r}"] = t - timedelta(days=i)
     ws["B2"] = t - timedelta(days=1)
