@@ -4,7 +4,8 @@ Usage:
     python build_tracker.py [output.xlsx] [--sample]
 
 --sample fills a few fictional rows so the formulas and flags can be checked;
-the file handed over for real use is built without it.
+--demo fills a fictional caseload (dates relative to TODAY()) to show how it works.
+The file handed over for real use is built without either.
 """
 import sys
 from datetime import date, timedelta
@@ -81,7 +82,7 @@ def active(r):
     return f'AND(${NAME}{r}<>"",OR(${STATUS}{r}="",${STATUS}{r}="Active"))'
 
 
-def build(path, sample=False):
+def build(path, sample=False, demo=False):
     wb = Workbook()
     ws = wb.active
     ws.title = "Caseload"
@@ -435,6 +436,8 @@ def build(path, sample=False):
 
     if sample:
         add_sample(ws)
+    if demo:
+        add_demo(wb)
     wb.save(path)
 
 
@@ -472,7 +475,103 @@ def add_sample(ws):
         ws[f"{UPD_ON}{r}"] = t - timedelta(days=i)
     ws["B2"] = t - timedelta(days=1)
 
+# Fictional caseload. NHS numbers are in the 999 test range (not issued to real people).
+# Each entry: name, NHS no., DOB, parity, MLC/CLC, weeks pregnant today, status,
+# {column: value}. Appointment values: week number -> date at that gestation (+ jitter days),
+# or a literal string (N/A, DNA). Other date values are days from today.
+DEMO_STAFF = ["Sarah Jones", "Priya Kaur", "Emma Lawson", "Nadia Brooks"]
+DEMO = [
+    ("Amelia Hart", "9993982598", date(1995, 3, 14), "G1P0", "MLC", 30, "",
+     {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
+      "31/40": ("wk", 31), "GTT booked": "Done 02/09", "Anti-D ordered": "N/A", "BP fortnightly": "N/A",
+      "Info": "31/40 this week.", "by": 0, "on": -1}),
+    ("Bethany Clarke", "9997919076", date(1990, 7, 2), "G2P1", "MLC", 26, "",
+     {"Booking date": ("wk", 9), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28),
+      "GTT booked": 3, "Anti-D ordered": "N/A", "Info": "Multip, no 25/40. GTT booked (previous GDM).",
+      "by": 1, "on": -5}),
+    ("Chloe Ahmed", "9994833782", date(1998, 11, 20), "G1P0", "CLC", 29, "",
+     {"Booking date": ("wk", 11), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
+      "BP fortnightly": 2, "Bloods needed": -3, "Info": "Raised BP at 25/40. Obs clinic review.",
+      "by": 2, "on": -9}),
+    ("Daisy Okafor", "9998762324", date(1988, 1, 9), "G3P2", "CLC", 34, "",
+     {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28),
+      "31/40": "N/A", "34/40": "DNA", "Anti-D ordered": "Done 20/08", "Info": "Rh neg. DNA 34/40 - tried phone.",
+      "by": 3, "on": -2}),
+    ("Ella Morgan", "9998601290", date(1996, 5, 30), "G1P0", "MLC", 35, "",
+     {"Booking date": ("wk", 9), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
+      "31/40": ("wk", 31), "34/40": "DNA", "36/40": ("wk", 36), "GTT booked": "N/A",
+      "Info": "DNA 34/40, rebooked for 36/40.", "by": 0, "on": -3}),
+    ("Freya Wilson", "9990404798", date(1993, 9, 12), "G2P1", "MLC", 12, "",
+     {"Booking date": ("wk", 10, -4), "Info": "Booked. 16/40 still to arrange.", "by": 1, "on": -12}),
+    ("Grace Patel", "9996669726", date(2000, 2, 25), "G1P0", "MLC", 9, "",
+     {"Booking date": 4, "Info": "New referral.", "by": 2, "on": 0}),
+    ("Hannah Lewis", "9995102730", date(1991, 12, 3), "G2P1", "CLC", 39, "",
+     {"Booking date": ("wk", 8), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28), "31/40": "N/A",
+      "34/40": ("wk", 34), "36/40": ("wk", 36), "38/40": ("wk", 38), "40/40": ("wk", 40),
+      "IOL booked": 10, "Anti-D ordered": "N/A", "Info": "IOL booked for T+10.", "by": 3, "on": -1}),
+    ("Isla Thompson", "9994646869", date(1994, 4, 18), "G1P0", "CLC", 41, "",
+     {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
+      "31/40": ("wk", 31), "34/40": ("wk", 34), "36/40": ("wk", 36), "38/40": ("wk", 38),
+      "40/40": ("wk", 40), "IOL booked": -1, "Info": "IOL date passed - check if delivered.",
+      "by": 0, "on": -8}),
+    ("Jasmine Evans", "9999589693", date(1989, 8, 8), "G2P1", "MLC", 43, "Delivered",
+     {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28), "31/40": "N/A",
+      "34/40": ("wk", 34), "36/40": ("wk", 36), "38/40": ("wk", 38), "IOL booked": "N/A",
+      "Info": "Delivered at 39+2. Handed to postnatal team.", "by": 2, "on": -20}),
+    ("Katie Brown", "9993504921", date(1997, 6, 21), "G2P1", "MLC", 20, "",
+     {"Booking date": ("wk", 9), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28),
+      "Info": "NHS no. has a typo (shows orange).", "by": 1, "on": -6}),
+    ("Lucy Hughes", "9997919076", date(1999, 10, 5), "G1P0", "MLC", 23, "",
+     {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": ("wk", 25),
+      "Info": "NHS no. same as Bethany Clarke (shows purple).", "by": 3, "on": -30}),
+]
+DEMO_LOG = [
+    (-30, 3, "Lucy Hughes", "9997919076", "16/40 seen. 25/40 booked."),
+    (-9, 2, "Chloe Ahmed", "9994833782", "BP 148/95 at 25/40. Referred to obs clinic. Bloods requested."),
+    (-6, 1, "Katie Brown", "9993504921", "16/40 seen, 28/40 booked (multip, no 25/40)."),
+    (-5, 1, "Bethany Clarke", "9997919076", "GTT booked."),
+    (-3, 0, "Ella Morgan", "9998601290", "DNA 34/40. Phoned, rebooked 36/40."),
+    (-2, 3, "Daisy Okafor", "9998762324", "DNA 34/40. Left voicemail, letter sent."),
+    (-1, 0, "Amelia Hart", "9993982598", "28/40 seen. 31/40 booked."),
+    (-1, 3, "Hannah Lewis", "9995102730", "38/40 seen. IOL booked. 40/40 booked."),
+    (0, 2, "Grace Patel", "9996669726", "New referral - booking appointment made."),
+]
+
+
+def add_demo(wb):
+    """Fictional caseload whose dates are formulas off TODAY(), so the flags stay current."""
+    ws, log, st = wb["Caseload"], wb["Log"], wb["Staff"]
+    ws["A1"] = "Antenatal Caseload Tracker: DEMO (fictional patients)"
+    ws["A1"].font = Font(name=FONT, size=14, bold=True, color="C00000")
+    ws["B2"] = "=TODAY()-3"
+    rel = lambda n: f"=TODAY(){n:+d}" if n else "=TODAY()"
+    for i, name in enumerate(DEMO_STAFF, start=2):
+        st[f"A{i}"] = name
+    for i, (name, nhs, dob, parity, model, gest, status, vals) in enumerate(DEMO):
+        r = FIRST + i
+        ws[f"{NAME}{r}"], ws[f"{NHS}{r}"], ws[f"{COL['DOB']}{r}"] = name, nhs, dob
+        ws[f"{COL['Parity']}{r}"], ws[f"{COL['MLC/CLC']}{r}"] = parity, model
+        ws[f"{EDD}{r}"] = rel(280 - gest * 7)
+        if status:
+            ws[f"{STATUS}{r}"] = status
+        for k, v in vals.items():
+            if k == "by":
+                ws[f"{UPD_BY}{r}"] = DEMO_STAFF[v]
+            elif k == "on":
+                ws[f"{UPD_ON}{r}"] = rel(v)
+            elif isinstance(v, tuple):          # ("wk", week, jitter)
+                ws[f"{COL[k]}{r}"] = rel((v[1] - gest) * 7 + (v[2] if len(v) > 2 else 0))
+            elif isinstance(v, int):
+                ws[f"{COL[k]}{r}"] = rel(v)
+            else:
+                ws[f"{COL[k]}{r}"] = v
+    for i, (days, who, name, nhs, what) in enumerate(DEMO_LOG):
+        rr = 4 + i
+        log[f"A{rr}"], log[f"B{rr}"], log[f"C{rr}"] = rel(days), DEMO_STAFF[who], name
+        log[f"D{rr}"], log[f"E{rr}"] = nhs, what
+
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    build(args[0] if args else "Antenatal_Caseload_Tracker.xlsx", sample="--sample" in sys.argv)
+    build(args[0] if args else "Antenatal_Caseload_Tracker.xlsx",
+          sample="--sample" in sys.argv, demo="--demo" in sys.argv)
