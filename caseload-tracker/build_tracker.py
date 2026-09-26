@@ -122,8 +122,8 @@ def build(path, sample=False):
     ws["G2"].font = Font(name=FONT, size=12, bold=True, color=AMBER_TXT)
     ws["H2"].font = Font(name=FONT, size=12, bold=True, color=BLUE_TXT)
 
-    legend = [("Overdue / next appt not booked", RED, RED_TXT), ("Due in next 7 days", AMBER, AMBER_TXT),
-              ("Seen / done", GREEN, GREEN_TXT), ("N/A or not active", GREY, GREY_TXT),
+    legend = [("Overdue / not confirmed", RED, RED_TXT), ("Due in next 7 days", AMBER, AMBER_TXT),
+              ("Confirmed / done", GREEN, GREEN_TXT), ("N/A or not active", GREY, GREY_TXT),
               ("Updated since your date", BLUE, BLUE_TXT), ("NHS no. invalid", ORANGE, "833C0B"),
               ("NHS no. duplicate", PURPLE, "403151")]
     ws[f"{A1}1"] = "Key:"
@@ -173,16 +173,16 @@ def build(path, sample=False):
         appts = f"${A1}{r}:${AN}{r}"
         chain = f"${BOOK}{r}:${AN}{r}"          # booking date + appointments, in date order
         acts = f"${X1}{r}:${XN}{r}"
-        # Next appointment not booked: the latest date entered has passed, a slot is still
-        # empty and there's no DNA (a DNA is counted on its own).
-        not_booked = (f'AND(MAX({chain})>0,MAX({chain})<TODAY(),COUNTBLANK({appts})>0,'
-                      f'COUNTIF({appts},"DNA")=0)')
+        # Latest entry in the chain (a date or DNA; N/A skipped). A past date only counts as
+        # attended once something later has been entered, so if this latest entry is a past
+        # date the appointment was either missed or the next one wasn't booked.
+        last = f'IFERROR(LOOKUP(2,1/(ISNUMBER({chain})+({chain}="DNA")),{chain}),"")'
         ws[f"{COL['Gestation today']}{r}"] = (
             f'=IF(OR(NOT({act}),${EDD}{r}=""),"",'
             f'INT((TODAY()-${EDD}{r}+280)/7)&"+"&MOD(TODAY()-${EDD}{r}+280,7))')
         ws[f"{COL['Overdue']}{r}"] = (
-            f'=IF(NOT({act}),"",IF({not_booked},1,0)'
-            f'+COUNTIF({appts},"DNA")+COUNTIF({acts},"<"&TODAY()))')
+            f'=IF(NOT({act}),"",IF(OR({last}="DNA",AND(ISNUMBER({last}),{last}<TODAY())),1,0)'
+            f'+COUNTIF({acts},"<"&TODAY()))')
         ws[f"{COL['Due in 7 days']}{r}"] = (
             f'=IF(NOT({act}),"",COUNTIFS({chain},">="&TODAY(),{chain},"<="&TODAY()+7)'
             f'+COUNTIFS({acts},">="&TODAY(),{acts},"<="&TODAY()+7))')
@@ -190,8 +190,8 @@ def build(path, sample=False):
         ws[f"{COL['Next appt']}{r}"] = (
             f'=IF(NOT({act}),"",IF({nd}<>"",IF({nd}=${BOOK}{r},"Booking",'
             f'INDEX({appt_hdr},MATCH({nd},{appts},0))),'
-            f'IF(COUNTIF({appts},"DNA")>0,"Rebook DNA",IF(COUNTBLANK({appts})=0,"All done",'
-            f'IF(MAX({chain})>0,"Not booked","")))))')
+            f'IF({last}="DNA","Rebook DNA",IF(ISNUMBER({last}),'
+            f'IF(ISNUMBER(${AN}{r}),"Update status","Missed/not booked?"),""))))')
         # earliest date on or after today = next booked appointment
         ws[f"{COL['Next appt due']}{r}"] = (
             f'=IF(NOT({act}),"",IFERROR(SMALL({chain},COUNTIF({chain},"<"&TODAY())+1),""))')
@@ -210,17 +210,23 @@ def build(path, sample=False):
 
     r = FIRST
     act = active(r)
-    appt_area = f"{A1}{r}:{AN}{LAST}"
-    prev = get_column_letter(ws[f"{A1}1"].column - 1)   # relative: the column to the left
-    chain = f"${BOOK}{r}:${AN}{r}"
-    cf(appt_area, f'{A1}{r}="N/A"', GREY, GREY_TXT)
-    cf(appt_area, f'AND({act},{A1}{r}="DNA")', RED, RED_TXT, bold=True)
-    # first empty slot after the last entry, once every date entered is in the past
-    cf(appt_area, f'AND({act},{A1}{r}="",{prev}{r}<>"",{prev}{r}<>"DNA",'
-                  f'MAX({chain})>0,MAX({chain})<TODAY())', RED, RED_TXT)
-    cf(f"{BOOK}{r}:{AN}{LAST}", f'AND({act},ISNUMBER({BOOK}{r}),{BOOK}{r}>=TODAY(),{BOOK}{r}<=TODAY()+7)',
-       AMBER, AMBER_TXT, bold=True)
-    cf(appt_area, f'AND(ISNUMBER({A1}{r}),{A1}{r}<TODAY())', GREEN, GREEN_TXT)
+    # Booking date and 16/40..38/40: a past date is confirmed once anything later is entered.
+    # 40/40 has nothing after it, so a past 40/40 stays red until Status changes.
+    for area_start, area_end, has_next in ((BOOK, get_column_letter(ws[f"{AN}1"].column - 1), True),
+                                           (AN, AN, False)):
+        c = area_start
+        area = f"{c}{r}:{area_end}{LAST}"
+        if has_next:
+            later = f"{get_column_letter(ws[f'{c}1'].column + 1)}{r}:${AN}{r}"
+            confirmed = f'(COUNT({later})+COUNTIF({later},"DNA"))>0'
+        else:
+            confirmed = "FALSE"
+        cf(area, f'{c}{r}="N/A"', GREY, GREY_TXT)
+        cf(area, f'AND({c}{r}="DNA",{confirmed})', GREY, RED_TXT)          # DNA, since rebooked
+        cf(area, f'AND({act},{c}{r}="DNA")', RED, RED_TXT, bold=True)
+        cf(area, f'AND({act},ISNUMBER({c}{r}),{c}{r}<TODAY(),NOT({confirmed}))', RED, RED_TXT, bold=True)
+        cf(area, f'AND({act},ISNUMBER({c}{r}),{c}{r}>=TODAY(),{c}{r}<=TODAY()+7)', AMBER, AMBER_TXT, bold=True)
+        cf(area, f'AND(ISNUMBER({c}{r}),{c}{r}<TODAY())', GREEN, GREEN_TXT)
 
     act_area = f"{X1}{r}:{XN}{LAST}"
     cf(act_area, f'{X1}{r}="N/A"', GREY, GREY_TXT)
@@ -232,7 +238,7 @@ def build(path, sample=False):
     cf(f"{ov}{r}:{ov}{LAST}", f'AND(ISNUMBER({ov}{r}),{ov}{r}>0)', RED, RED_TXT, bold=True)
     cf(f"{sn}{r}:{sn}{LAST}", f'AND(ISNUMBER({sn}{r}),{sn}{r}>0)', AMBER, AMBER_TXT, bold=True)
     na = COL["Next appt"]
-    cf(f"{na}{r}:{na}{LAST}", f'OR({na}{r}="Not booked",{na}{r}="Rebook DNA")', RED, RED_TXT, bold=True)
+    cf(f"{na}{r}:{na}{LAST}", f'OR({na}{r}="Missed/not booked?",{na}{r}="Rebook DNA",{na}{r}="Update status")', RED, RED_TXT, bold=True)
     cf(f"{nd}{r}:{nd}{LAST}", f'AND(ISNUMBER({nd}{r}),{nd}{r}<=TODAY()+7)', AMBER, AMBER_TXT, bold=True)
     cf(f"{EDD}{r}:{EDD}{LAST}", f'AND({act},ISNUMBER({EDD}{r}),{EDD}{r}<TODAY())', AMBER, AMBER_TXT, bold=True)
 
@@ -278,8 +284,8 @@ def build(path, sample=False):
        errorStyle="warning", showErrorMessage=True, errorTitle="Appointment",
        error="Expected a date, DNA or N/A.", showInputMessage=True,
        promptTitle="Appointment", prompt="Enter the date once it's booked (usually at the previous "
-                                         "appointment). DNA if missed: replace with the new date once "
-                                         "rebooked. N/A if not needed.")
+                                         "appointment). Adding it confirms the previous one happened. "
+                                         "DNA if missed. N/A if not needed.")
     dv(f"{X1}{FIRST}:{XN}{LAST}", type="custom", formula1="TRUE", showInputMessage=True,
        promptTitle="Action", prompt="Enter the date booked/due. Once complete, type Done (or e.g. "
                                     "'Done 12/3 SW'). N/A if not needed.")
@@ -366,12 +372,18 @@ def build(path, sample=False):
              "so don't type in them."),
         ("", "• Booking date and appointments (16/40 to 40/40): enter each date when it's booked. 16/40 is "
              "added at booking, 25/40 at the 16/40 appointment, and so on. Empty future columns are fine."),
-        ("", "  – Amber: the appointment is in the next 7 days. Green: the date has passed (seen). "
-             "Plain: booked, more than a week away."),
-        ("", "  – Red empty cell: the last appointment has passed and the next one hasn't been added yet. "
-             "Only the first empty slot turns red, and N/A slots are skipped (e.g. 25/40 or 31/40 for multips)."),
-        ("", "  – DNA: type DNA over the date. It stays red, and 'Next appt' says Rebook DNA, until you "
-             "replace it with the rebooked date. Note the DNA in Info or the Log so it isn't lost."),
+        ("", "  – An appointment only counts as attended once a later date has been entered, because the "
+             "next date can only be booked at that appointment. So a past date turns green only when "
+             "something is entered after it."),
+        ("", "  – Red date: the appointment date has passed and nothing later has been entered. Either it was "
+             "missed (type DNA over it) or the next appointment hasn't been booked yet (add it). "
+             "'Next appt' shows 'Missed/not booked?'."),
+        ("", "  – Amber: the appointment is in the next 7 days. Plain: booked, more than a week away. "
+             "N/A slots are skipped (e.g. 25/40 or 31/40 for multips)."),
+        ("", "  – DNA: red until a later date is entered. Either type the rebooked date over the DNA, or "
+             "leave DNA in place and put the new date in the next column; the DNA then stays visible in grey."),
+        ("", "  – 40/40 has nothing after it, so once it has passed it stays red ('Update status') until "
+             "Status is changed, e.g. to Delivered."),
         ("", "• Action columns (GTT, Anti-D, BP, Bloods, IOL): enter the date it's booked or due. It turns amber "
              "within 7 days and red once the date has passed. When it's done, overwrite it with 'Done' "
              "(or 'Done 12/3 SW'), which turns it green. N/A turns it grey."),
@@ -379,9 +391,10 @@ def build(path, sample=False):
              "appears twice."),
         ("", "• EDD turns amber if it has passed and the patient is still Active, as a reminder to update Status."),
         ("s", "Colour key"),
-        ("red", "Red: next appointment not booked, DNA, or an action date that has passed and isn't marked Done"),
+        ("red", "Red: appointment passed but not confirmed (nothing entered after it), DNA not yet rebooked, "
+                "or an action date that has passed and isn't marked Done"),
         ("amber", "Amber: due in the next 7 days"),
-        ("green", "Green: done / seen"),
+        ("green", "Green: appointment confirmed (a later date has been entered) or action Done"),
         ("grey", "Grey: N/A, or the patient is no longer active"),
         ("blue", "Blue: row updated on or after the date in cell B2"),
         ("s", "Example row (format only, fictional)"),
@@ -399,7 +412,7 @@ def build(path, sample=False):
         ("", "The 'Last updated by' columns and the Log are the human-readable layer on top of that."),
         ("s", "Adding rows"),
         ("", f"The table is pre-formatted for {ROWS} patients. Don't insert or reorder columns "
-             "between Booking date and 40/40, because the red 'not booked' check reads them left to right."),
+             "between Booking date and 40/40, because the confirmation check reads them left to right."),
         ("s", "Information governance"),
         ("", "This holds patient-identifiable data. Keep it in the approved team location with access limited "
              "to the team, and follow your trust's IG policy."),
@@ -430,17 +443,24 @@ def add_sample(ws):
     t = date.today()
     d = lambda n: t + timedelta(days=n)
     rows = [
-        ("Test NotBooked", "9434765919", {"Booking date": d(-120), "16/40": d(-60), "25/40": d(-10),
-                                          "GTT booked": d(-2)}),
+        # 16/40 passed, nothing after it -> 16/40 red, plus a passed GTT: overdue 2
+        ("Test Unconfirmed", "9434765919", {"Booking date": d(-60), "16/40": d(-10), "GTT booked": d(-2)}),
+        # 16/40 confirmed by 28/40 (25/40 N/A); 28/40 in 3 days; Anti-D in 4 days
         ("Test Upcoming", "9434765918", {"Booking date": d(-100), "16/40": d(-40), "25/40": "N/A",
                                          "28/40": d(3), "Anti-D ordered": d(4)}),
         ("Test Delivered", "943 476 5919", {"Status": "Delivered", "Booking date": d(-250),
                                             **{a: d(-200 + i * 20) for i, a in enumerate(APPTS)},
                                             "IOL booked": "Done"}),
+        # booking in 5 days only
         ("Test JustBooked", "4010232137", {"Booking date": d(5), "BP fortnightly": "N/A"}),
-        ("Test NASkip", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": "N/A"}),
+        # past booking, 16/40 not added -> booking red
+        ("Test BookingOnly", "", {"Booking date": d(-3)}),
+        # 25/40 DNA, nothing later -> DNA red, Rebook DNA
         ("Test DNA", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": "DNA"}),
-        ("Test BookedFar", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": d(20)}),
+        # DNA left in place, rebooked in next column -> DNA grey, 28/40 plain (future)
+        ("Test DNARebooked", "", {"Booking date": d(-100), "16/40": d(-50), "25/40": "DNA", "28/40": d(20)}),
+        # past 40/40 still Active -> 40/40 red, Update status
+        ("Test Past40", "", {"Booking date": d(-250), **{a: d(-200 + i * 25) for i, a in enumerate(APPTS)}}),
     ]
     for i, (name, nhs, vals) in enumerate(rows):
         r = FIRST + i
