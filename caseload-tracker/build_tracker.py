@@ -119,7 +119,7 @@ def build(path, sample=False, demo=False):
 
     legend = [("Overdue / not confirmed", RED, RED_TXT), ("Due in next 7 days", AMBER, AMBER_TXT),
               ("Confirmed / done", GREEN, GREEN_TXT), ("N/A", GREY, GREY_TXT), ("Delivered / not active", COMPLETE, "808080"),
-              ("NHS no. invalid", ORANGE, "833C0B"), ("NHS no. duplicate", PURPLE, "403151")]
+              ("NHS no. duplicate", PURPLE, "403151")]
     key_col = ws[f"{BOOK}1"].column
     ws.cell(row=1, column=key_col, value="Key:").font = Font(name=FONT, size=9, bold=True)
     for i, (label, f, t) in enumerate(legend):
@@ -240,11 +240,7 @@ def build(path, sample=False, demo=False):
     cf(f"{nd}{r}:{nd}{LAST}", f'AND(ISNUMBER({nd}{r}),{nd}{r}<=TODAY()+7)', AMBER, AMBER_TXT, bold=True)
     cf(f"{EDD}{r}:{EDD}{LAST}", f'AND({act},ISNUMBER({EDD}{r}),{EDD}{r}<TODAY())', AMBER, AMBER_TXT, bold=True)
 
-    s = f'SUBSTITUTE({NHS}{r}," ","")'
-    weighted = "+".join(f"MID({s},{i},1)*{11 - i}" for i in range(1, 10))
-    valid = f'AND(LEN({s})=10,ISNUMBER(VALUE({s})),MOD(11-MOD({weighted},11),11)=VALUE(RIGHT({s},1)))'
     nhs_area = f"{NHS}{r}:{NHS}{LAST}"
-    cf(nhs_area, f'AND({NHS}{r}<>"",NOT(IFERROR({valid},FALSE)))', ORANGE, "833C0B")
     cf(nhs_area, f'AND({NHS}{r}<>"",COUNTIF(${NHS}${FIRST}:${NHS}${LAST},{NHS}{r})>1)', PURPLE, "403151")
 
 
@@ -373,8 +369,7 @@ def build(path, sample=False, demo=False):
              "(or 'Done 12/3 SW'), which turns it green. N/A turns it grey."),
         ("", "• IOL booked: Yes or No from the dropdown (Yes shows green)."),
         ("", "• Risks: free text."),
-        ("", "• NHS number: orange means it isn't a valid 10-digit NHS number (checksum). Purple means it "
-             "appears twice."),
+        ("", "• NHS number: purple means the same number appears twice."),
         ("", "• EDD turns amber if it has passed and the patient is still Active, as a reminder to update Status."),
         ("s", "Colour key"),
         ("red", "Red: appointment passed but not confirmed (nothing entered after it), DNA not yet rebooked, "
@@ -511,7 +506,7 @@ DEMO = [
       "Risks": "Delivered 39+2", "by": 2}),
     ("Katie Brown", "9993504921", date(1997, 6, 21), "G2P1", "MLC", 20, "",
      {"Booking date": ("wk", 9), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28),
-      "Risks": "NHS no. has a typo (shows orange)", "by": 1}),
+      "Risks": "None identified", "by": 1}),
     ("Lucy Hughes", "9997919076", date(1999, 10, 5), "G1P0", "MLC", 23, "",
      {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": ("wk", 25),
       "Risks": "NHS no. same as Bethany Clarke (shows purple)", "by": 3}),
