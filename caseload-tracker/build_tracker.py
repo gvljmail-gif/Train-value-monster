@@ -48,7 +48,7 @@ GROUP_FILLS = {G_PAT: fill("DDEBF7"), G_AUTO: fill("EDEDED"), G_APPT: fill("E2EF
 # (header, width, group), left to right
 APPTS = ["16/40", "25/40", "28/40", "31/40", "34/40", "36/40", "38/40", "40/40"]
 CHAIN = ["Booking date"] + APPTS                              # read in this order
-DATE_ACTIONS = ["GTT booked", "Anti-D ordered", "BP fortnightly", "BP weekly", "Bloods date"]  # date, then 'Done'
+DATE_ACTIONS = ["GTT booked", "Anti-D ordered", "BP fortnightly", "BP weekly"]  # date, then 'Done'
 COLUMNS = [
     ("Name", 22, G_PAT), ("NHS number", 14, G_PAT), ("DOB", 11, G_PAT), ("Parity", 8, G_PAT),
     ("MLC/CLC", 9, G_PAT), ("EDD", 11, G_PAT), ("Status", 13, G_PAT),
@@ -59,7 +59,6 @@ COLUMNS = [
     ("28/40", 10, G_APPT), ("31/40", 10, G_APPT), ("34/40", 10, G_APPT), ("36/40", 10, G_APPT),
     ("38/40", 10, G_APPT), ("40/40", 10, G_APPT),
     ("IOL booked", 9, G_ACT), ("BP fortnightly", 11, G_ACT), ("BP weekly", 11, G_ACT),
-    ("Bloods needed", 28, G_ACT), ("Bloods date", 11, G_ACT),
     ("Risks", 40, G_NOTES), ("Last updated by", 15, G_NOTES), ("Overdue", 9, G_AUTO),
 ]
 COL = {h: get_column_letter(i + 1) for i, (h, _, _) in enumerate(COLUMNS)}
@@ -156,7 +155,7 @@ def build(path, sample=False, demo=False):
             ws[f"{c}{r}"].number_format = DATE_FMT
             ws[f"{c}{r}"].alignment = Alignment(horizontal="center")
         ws[f"{NHS}{r}"].number_format = "@"
-        for c in ("Risks", "Bloods needed"):
+        for c in ("Risks",):
             ws[f"{COL[c]}{r}"].alignment = Alignment(wrap_text=True, vertical="top")
         for c in auto_cols:
             ws[f"{c}{r}"].fill = AUTO_FILL
@@ -230,13 +229,6 @@ def build(path, sample=False, demo=False):
         cf(area, f'AND({act},ISNUMBER({x}),{x}<TODAY())', RED, RED_TXT)
         cf(area, f'AND({act},ISNUMBER({x}),{x}>=TODAY(),{x}<=TODAY()+7)', AMBER, AMBER_TXT)
         cf(area, f'AND(ISTEXT({x}),{x}<>"")', GREEN, GREEN_TXT)
-    # Bloods needed (free text) takes its colour from Bloods date, and is amber when bloods
-    # are written in but no date has been entered, so they can't be missed.
-    bn, bd = f"{COL['Bloods needed']}{r}", f"${COL['Bloods date']}{r}"
-    cf(col_area("Bloods needed"), f'AND({act},{bn}<>"",ISNUMBER({bd}),{bd}<TODAY())', RED, RED_TXT)
-    cf(col_area("Bloods needed"), f'AND({bn}<>"",ISTEXT({bd}),{bd}<>"",{bd}<>"N/A")', GREEN, GREEN_TXT)
-    cf(col_area("Bloods needed"), f'AND({act},{bn}<>"",OR({bd}="",AND(ISNUMBER({bd}),{bd}<=TODAY()+7)))',
-       AMBER, AMBER_TXT)
     iol = f"{COL['IOL booked']}{r}"
     cf(col_area("IOL booked"), f'{iol}="Yes"', GREEN, GREEN_TXT)
 
@@ -376,13 +368,10 @@ def build(path, sample=False, demo=False):
              "leave DNA in place and put the new date in the next column; the DNA then stays visible in grey."),
         ("", "  – 40/40 has nothing after it, so once it has passed it stays red ('Update status') until "
              "Status is changed, e.g. to Delivered."),
-        ("", "• GTT booked, Anti-D ordered, BP fortnightly, BP weekly, Bloods date: enter the date it's booked or due. It turns amber "
+        ("", "• GTT booked, Anti-D ordered, BP fortnightly, BP weekly: enter the date it's booked or due. It turns amber "
              "within 7 days and red once the date has passed. When it's done, overwrite it with 'Done' "
              "(or 'Done 12/3 SW'), which turns it green. N/A turns it grey."),
         ("", "• IOL booked: Yes or No from the dropdown (Yes shows green)."),
-        ("", "• Bloods needed: free text saying which bloods, e.g. 'FBC + G&S'. Put the date in Bloods date "
-             "(then Done when taken). Bloods needed turns amber if there's no date yet or it's within 7 days, "
-             "red once the date has passed, and green when Bloods date says Done."),
         ("", "• Risks: free text."),
         ("", "• NHS number: orange means it isn't a valid 10-digit NHS number (checksum). Purple means it "
              "appears twice."),
@@ -398,7 +387,7 @@ def build(path, sample=False, demo=False):
         ("", "Jane Example | 943 476 5919 | 02/05/1994 | G2P1 | MLC | 10/01/2027 | (Status blank) | "
              "Booking date: 18/06/2026 | 16/40: 11/08/2026 | 25/40: N/A | GTT booked: 14/10/2026 | "
              "Anti-D ordered: Done 20/09 | 28/40: 01/10/2026 | IOL booked: No | BP fortnightly: N/A | "
-             "BP weekly: N/A | Bloods needed: FBC + G&S | Bloods date: 01/10/2026 | Risks: Previous PPH | "
+             "BP weekly: N/A | Risks: Previous PPH | "
              "Last updated by: (your name)"),
         ("s", "Seeing exactly who changed what"),
         ("", "If the file is stored on SharePoint, OneDrive or Teams (not a shared drive), Excel keeps a full "
@@ -489,18 +478,18 @@ DEMO = [
       "by": 1}),
     ("Chloe Ahmed", "9994833782", date(1998, 11, 20), "G1P0", "CLC", 29, "",
      {"Booking date": ("wk", 11), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
-      "BP weekly": 2, "Bloods needed": "PET bloods + urine PCR", "Bloods date": -1,
+      "BP weekly": 2,
       "GTT booked": -3, "Risks": "Raised BP at 25/40 - PET risk",
       "by": 2}),
     ("Daisy Okafor", "9998762324", date(1988, 1, 9), "G3P2", "CLC", 34, "",
      {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": "N/A", "28/40": ("wk", 28),
-      "31/40": "N/A", "34/40": "DNA", "Anti-D ordered": "Done 20/08", "Bloods needed": "FBC",
+      "31/40": "N/A", "34/40": "DNA", "Anti-D ordered": "Done 20/08",
       "Risks": "Rh negative. Safeguarding",
       "by": 3}),
     ("Ella Morgan", "9998601290", date(1996, 5, 30), "G1P0", "MLC", 35, "",
      {"Booking date": ("wk", 9), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
       "31/40": ("wk", 31), "34/40": "DNA", "36/40": ("wk", 36), "GTT booked": "N/A",
-      "BP fortnightly": 6, "Bloods needed": "FBC + G&S", "Bloods date": "Done",
+      "BP fortnightly": 6,
       "Risks": "BMI 38", "by": 0}),
     ("Freya Wilson", "9990404798", date(1993, 9, 12), "G2P1", "MLC", 12, "",
      {"Booking date": ("wk", 10, -4), "Risks": "Previous LSCS", "by": 1}),
@@ -513,7 +502,7 @@ DEMO = [
     ("Isla Thompson", "9994646869", date(1994, 4, 18), "G1P0", "CLC", 41, "",
      {"Booking date": ("wk", 10), "16/40": ("wk", 16), "25/40": ("wk", 25), "28/40": ("wk", 28),
       "31/40": ("wk", 31), "34/40": ("wk", 34), "36/40": ("wk", 36), "38/40": ("wk", 38),
-      "40/40": ("wk", 40), "IOL booked": "No", "Bloods needed": "FBC", "Bloods date": 3,
+      "40/40": ("wk", 40), "IOL booked": "No",
       "Risks": "Past 40/40 - check if delivered",
       "by": 0}),
     ("Jasmine Evans", "9999589693", date(1989, 8, 8), "G2P1", "MLC", 43, "Delivered",

@@ -87,7 +87,7 @@ def build(path, sample=False):
         ("", "• Set Status for anyone who has delivered or left, so their rows grey out."),
         ("", "• Past appointment dates with nothing after them will show red. That's the tracker doing "
              "its job: check each one."),
-        ("", "• Fill in the new columns (GTT, Anti-D, IOL, BP, Bloods, Last updated by). The old info column goes into Risks. as you go."),
+        ("", "• Fill in the new columns (GTT, Anti-D, IOL, BP, Last updated by) as you go. The old info column goes into Risks."),
         ("s", "5. Delete this helper file"),
         ("", "It now holds a copy of patient data. Delete it once the tracker looks right."),
     ]
