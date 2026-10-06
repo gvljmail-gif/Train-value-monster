@@ -49,6 +49,9 @@ async def scrape_source(ctx, src, spec):
             if i and spec.get("delay"):
                 await asyncio.sleep(spec["delay"])  # polite spacing for sites that rate-limit (Very)
             s, items = await SEARCH_MODS[t].scrape_search(ctx, q)
+            if not items and s == 200:  # rendered late or soft-blocked: one retry
+                await asyncio.sleep(4)
+                s, items = await SEARCH_MODS[t].scrape_search(ctx, q)
             coverage.append(cov(src, f"search: {q}", s, len(items)))
             found += items
     else:

@@ -144,5 +144,15 @@
   },
   "resale_lines": [
     "Air Jordan 2"
-  ]
+  ],
+  "ref_rrp": {
+    "Air Max 90": 145,
+    "Air Max 95": 185,
+    "Air Max 97": 185,
+    "Air Force 1": 115,
+    "Dunk": 115
+  },
+  "rrp_tolerance": 1.15,
+  "min_sources_ok": 8,
+  "max_check_cards": 24
 }
