@@ -1,0 +1,19 @@
+{
+  "sizes": [
+    "8.5",
+    "9"
+  ],
+  "deal_threshold_pct": 35,
+  "sources": {
+    "size": {
+      "base": "https://www.size.co.uk",
+      "lists": [
+        "/mens/collection/nike-air-max-95/sale/",
+        "/mens/collection/nike-air-max-90/sale/",
+        "/mens/collection/nike-air-force-1/sale/",
+        "/mens/brand/jordan/sale/",
+        "/collection/jordan-2/sale/"
+      ]
+    }
+  }
+}

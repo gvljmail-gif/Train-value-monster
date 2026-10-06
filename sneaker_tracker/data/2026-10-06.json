@@ -1,0 +1,587 @@
+{
+ "date": "2026-10-06",
+ "coverage": [
+  {
+   "source": "size",
+   "url": "https://www.size.co.uk/mens/collection/nike-air-max-95/sale/",
+   "http": 200,
+   "items": 8,
+   "result": "ok"
+  },
+  {
+   "source": "size",
+   "url": "https://www.size.co.uk/mens/collection/nike-air-max-90/sale/",
+   "http": 200,
+   "items": 7,
+   "result": "ok"
+  },
+  {
+   "source": "size",
+   "url": "https://www.size.co.uk/mens/collection/nike-air-force-1/sale/",
+   "http": 200,
+   "items": 8,
+   "result": "ok"
+  },
+  {
+   "source": "size",
+   "url": "https://www.size.co.uk/mens/brand/jordan/sale/",
+   "http": 200,
+   "items": 24,
+   "result": "ok"
+  },
+  {
+   "source": "size",
+   "url": "https://www.size.co.uk/collection/jordan-2/sale/",
+   "http": 200,
+   "items": 3,
+   "result": "ok"
+  }
+ ],
+ "products": [
+  {
+   "name": "Nike Air Max 95 'Comet Red'",
+   "url": "https://www.size.co.uk/product/grey-nike-air-max-95-comet-red/19752767/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 175.0,
+   "price": 110.0,
+   "discount_pct": 37,
+   "source": "size",
+   "sizes": {
+    "8.5": true,
+    "9": true
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Max 95 Leather",
+   "url": "https://www.size.co.uk/product/black-nike-air-max-95-leather/19730114/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 185.0,
+   "price": 130.0,
+   "discount_pct": 30,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 95 Leather",
+   "url": "https://www.size.co.uk/product/brown-nike-air-max-95-leather/19734934/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 185.0,
+   "price": 100.0,
+   "discount_pct": 46,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Max 95 'Olympic'",
+   "url": "https://www.size.co.uk/product/multi-nike-air-max-95-olympic/19735397/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 165.0,
+   "price": 105.0,
+   "discount_pct": 36,
+   "source": "size",
+   "sizes": {
+    "8.5": true,
+    "9": true
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Max 95 Zip",
+   "url": "https://www.size.co.uk/product/white-nike-air-max-95-zip/19735468/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 185.0,
+   "price": 130.0,
+   "discount_pct": 30,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 95",
+   "url": "https://www.size.co.uk/product/brown-nike-air-max-95/19735640/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 180.0,
+   "price": 90.0,
+   "discount_pct": 50,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Max 95",
+   "url": "https://www.size.co.uk/product/green-nike-air-max-95/19735641/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 180.0,
+   "price": 115.0,
+   "discount_pct": 36,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Max 95",
+   "url": "https://www.size.co.uk/product/white-nike-air-max-95/19688864/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 175.0,
+   "price": 120.0,
+   "discount_pct": 31,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 90",
+   "url": "https://www.size.co.uk/product/blue-nike-air-max-90/19753043/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 145.0,
+   "price": 115.0,
+   "discount_pct": 21,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 90 Premium",
+   "url": "https://www.size.co.uk/product/brown-nike-air-max-90-premium/19735639/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 145.0,
+   "price": 80.0,
+   "discount_pct": 45,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Max 90 'Mercurial Vapor 1'",
+   "url": "https://www.size.co.uk/product/black-nike-air-max-90-mercurial-vapor-1/19752640/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 135.0,
+   "price": 100.0,
+   "discount_pct": 26,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 90 'Hypervenom'",
+   "url": "https://www.size.co.uk/product/orange-nike-air-max-90-hypervenom/19752639/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 135.0,
+   "price": 90.0,
+   "discount_pct": 33,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 90",
+   "url": "https://www.size.co.uk/product/grey-nike-air-max-90/19730661/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 135.0,
+   "price": 95.0,
+   "discount_pct": 30,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 90 Premium",
+   "url": "https://www.size.co.uk/product/black-nike-air-max-90-premium/19735831/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 135.0,
+   "price": 95.0,
+   "discount_pct": 30,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Max 90",
+   "url": "https://www.size.co.uk/product/black-nike-air-max-90/19730366/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 145.0,
+   "price": 100.0,
+   "discount_pct": 31,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/brown-nike-air-force-1-low/19750161/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 130.0,
+   "price": 95.0,
+   "discount_pct": 27,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/black-nike-air-force-1-low/19742723/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 110.0,
+   "price": 75.0,
+   "discount_pct": 32,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/grey-nike-air-force-1-low/19741957/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 110.0,
+   "price": 75.0,
+   "discount_pct": 32,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/brown-nike-air-force-1-low/19746863/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 130.0,
+   "price": 90.0,
+   "discount_pct": 31,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/brown-nike-air-force-1-low/19735597/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 120.0,
+   "price": 85.0,
+   "discount_pct": 29,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/brown-nike-air-force-1-low/19730115/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 120.0,
+   "price": 75.0,
+   "discount_pct": 38,
+   "source": "size",
+   "sizes": {
+    "8.5": true,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Nike Air Force 1 Vibram",
+   "url": "https://www.size.co.uk/product/grey-nike-air-force-1-vibram/19735532/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 120.0,
+   "price": 85.0,
+   "discount_pct": 29,
+   "source": "size"
+  },
+  {
+   "name": "Nike Air Force 1 Low",
+   "url": "https://www.size.co.uk/product/white-nike-air-force-1-low/19732099/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 110.0,
+   "price": 85.0,
+   "discount_pct": 23,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 3 Retro 'True Blue'",
+   "url": "https://www.size.co.uk/product/white-jordan-air-3-retro-true-blue/19758460/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 140.0,
+   "discount_pct": 26,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 4 Retro 'Toro Bravo'",
+   "url": "https://www.size.co.uk/product/red-jordan-air-4-retro-toro-bravo/19750150/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 155.0,
+   "discount_pct": 18,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 1 Low OG",
+   "url": "https://www.size.co.uk/product/red-jordan-air-1-low-og/19725395/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 145.0,
+   "price": 85.0,
+   "discount_pct": 41,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 1 High OG 'Shattered Backboard'",
+   "url": "https://www.size.co.uk/product/orange-jordan-air-1-high-og-shattered-backboard/19705345/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 175.0,
+   "price": 110.0,
+   "discount_pct": 37,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 1 Low OG 'Banned'",
+   "url": "https://www.size.co.uk/product/black-jordan-air-1-low-og-banned/19751508/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 145.0,
+   "price": 105.0,
+   "discount_pct": 28,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Broken Records T-Shirt",
+   "url": "https://www.size.co.uk/product/white-jordan-broken-records-t-shirt/19738182/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 38.0,
+   "price": 25.0,
+   "discount_pct": 34,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Toon T-Shirt",
+   "url": "https://www.size.co.uk/product/black-jordan-toon-t-shirt/19730446/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 35.0,
+   "price": 20.0,
+   "discount_pct": 43,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 5 Retro OG 'White Metallic'",
+   "url": "https://www.size.co.uk/product/white-jordan-air-5-retro-og-white-metallic/19749096/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 135.0,
+   "discount_pct": 29,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 3 'Spring'",
+   "url": "https://www.size.co.uk/product/white-jordan-air-3-spring/19735512/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 160.0,
+   "discount_pct": 16,
+   "source": "size"
+  },
+  {
+   "name": "Jordan x Levi's Air 3 Retro",
+   "url": "https://www.size.co.uk/product/black-jordan-x-levis-air-3-retro/19738275/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 140.0,
+   "discount_pct": 26,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 1 High OG 'UNC Reimagined'",
+   "url": "https://www.size.co.uk/product/blue-jordan-air-1-high-og-unc-reimagined/19694756/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 175.0,
+   "price": 110.0,
+   "discount_pct": 37,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": true
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 11 Retro Low 'University Blue'",
+   "url": "https://www.size.co.uk/product/blue-jordan-air-11-retro-low-university-blue/19735543/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 185.0,
+   "price": 130.0,
+   "discount_pct": 30,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 1 Retro High",
+   "url": "https://www.size.co.uk/product/black-jordan-air-1-retro-high/19681155/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 175.0,
+   "price": 105.0,
+   "discount_pct": 40,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 3 'World's Best Dad'",
+   "url": "https://www.size.co.uk/product/white-jordan-air-3-worlds-best-dad/19753053/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 150.0,
+   "discount_pct": 21,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 5",
+   "url": "https://www.size.co.uk/product/white-jordan-air-5/19709441/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 125.0,
+   "discount_pct": 34,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 9 'Flint Grey'",
+   "url": "https://www.size.co.uk/product/grey-jordan-air-9-flint-grey/19735480/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 105.0,
+   "discount_pct": 45,
+   "source": "size",
+   "sizes": {
+    "8.5": true,
+    "9": true
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 8 Retro 'Bugs Bunny'",
+   "url": "https://www.size.co.uk/product/white-jordan-air-8-retro-bugs-bunny/19730363/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 190.0,
+   "price": 120.0,
+   "discount_pct": 37,
+   "source": "size",
+   "sizes": {
+    "8.5": true,
+    "9": true
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Flight MVP Jacket",
+   "url": "https://www.size.co.uk/product/black-jordan-flight-mvp-jacket/17316750/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 110.0,
+   "price": 35.0,
+   "discount_pct": 68,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Flight Heritage 85 T-Shirt",
+   "url": "https://www.size.co.uk/product/blue-jordan-flight-heritage-85-t-shirt/19658563/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 65.0,
+   "price": 35.0,
+   "discount_pct": 46,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 1 Retro High OG 'All-Star'",
+   "url": "https://www.size.co.uk/product/grey-jordan-air-1-retro-high-og-all-star/19735425/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 165.0,
+   "price": 110.0,
+   "discount_pct": 33,
+   "source": "size"
+  },
+  {
+   "name": "Jordan 23 Full-Zip Hoodie",
+   "url": "https://www.size.co.uk/product/red-jordan-23-full-zip-hoodie/19764911/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 115.0,
+   "price": 105.0,
+   "discount_pct": 9,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 1 Low OG",
+   "url": "https://www.size.co.uk/product/white-jordan-air-1-low-og/19735467/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 145.0,
+   "price": 115.0,
+   "discount_pct": 21,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Flight Chicago Realtree Jacket",
+   "url": "https://www.size.co.uk/product/brown-jordan-flight-chicago-realtree-jacket/19727141/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 165.0,
+   "price": 85.0,
+   "discount_pct": 48,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 13 'Chicago'",
+   "url": "https://www.size.co.uk/product/white-jordan-air-13-chicago/19735479/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 185.0,
+   "price": 135.0,
+   "discount_pct": 27,
+   "source": "size"
+  },
+  {
+   "name": "Jordan Air 2 Women's",
+   "url": "https://www.size.co.uk/product/white-jordan-air-2-womens/19217740/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 110.0,
+   "price": 65.0,
+   "discount_pct": 41,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 2 Retro Junior",
+   "url": "https://www.size.co.uk/product/white-jordan-air-2-retro-junior/19600258/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 115.0,
+   "price": 65.0,
+   "discount_pct": 43,
+   "source": "size",
+   "sizes": {
+    "8.5": null,
+    "9": null
+   },
+   "size_check_http": 200
+  },
+  {
+   "name": "Jordan Air 2 Children's",
+   "url": "https://www.size.co.uk/product/white-jordan-air-2-childrens/19217741/",
+   "image": "/skins/jdgroup-desktop/public/img/products/noimage.png",
+   "rrp": 60.0,
+   "price": 40.0,
+   "discount_pct": 33,
+   "source": "size"
+  }
+ ]
+}
