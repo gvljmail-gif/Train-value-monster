@@ -19,7 +19,8 @@ def parse_list(html, base):
         title = re.search(r'data-e2e="product-listing-name">([^<]+)<', card)
         was = re.search(r'class="was">(.*?)</span>\s*</span>', card, re.S)
         now = re.search(r'data-e2e="product-listing-price">(.*?)</span>\s*</span>', card, re.S)
-        img = re.search(r'<img[^>]+data-e2e="product-listing-img"[^>]+src="([^"]+)"', card)
+        # first absolute product photo URL; \s before src avoids matching data-fallbacksrc
+        img = re.search(r'\ssrc="(https?://[^"]+)"', card) or re.search(r'data-srcset="(https?://[^\s"]+)', card)
         if not (href and title and now):
             continue
         was_p, now_p = _money(was.group(1) if was else None), _money(now.group(1))
