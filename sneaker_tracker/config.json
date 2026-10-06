@@ -6,6 +6,7 @@
   "deal_threshold_pct": 35,
   "sources": {
     "size": {
+      "type": "jdgroup",
       "base": "https://www.size.co.uk",
       "lists": [
         "/mens/collection/nike-air-max-95/sale/",
@@ -13,6 +14,47 @@
         "/mens/collection/nike-air-force-1/sale/",
         "/mens/brand/jordan/sale/",
         "/collection/jordan-2/sale/"
+      ]
+    },
+    "footpatrol": {
+      "type": "shopify",
+      "collections": [
+        "sale"
+      ]
+    },
+    "nike": {
+      "type": "nike",
+      "lists": [
+        "https://www.nike.com/gb/w?q=air%20max%2090&vst=air%20max%2090",
+        "https://www.nike.com/gb/w?q=air%20max%2095&vst=air%20max%2095",
+        "https://www.nike.com/gb/w?q=air%20max%2097&vst=air%20max%2097",
+        "https://www.nike.com/gb/w?q=air%20jordan&vst=air%20jordan",
+        "https://www.nike.com/gb/w?q=air%20jordan%202&vst=air%20jordan%202",
+        "https://www.nike.com/gb/w?q=air%20force%201&vst=air%20force%201",
+        "https://www.nike.com/gb/w?q=nike%20dunk&vst=nike%20dunk",
+        "https://www.nike.com/gb/w?q=killshot&vst=killshot"
+      ]
+    },
+    "end": {
+      "type": "end",
+      "lists": [
+        "https://www.endclothing.com/gb/sale/nike",
+        "https://www.endclothing.com/gb/sale/nike?page=2",
+        "https://www.endclothing.com/gb/sale/nike?page=3"
+      ]
+    },
+    "footlocker": {
+      "type": "footlocker",
+      "lists": [
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2090",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2095",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2097",
+        "https://www.footlocker.co.uk/en/search?query=air%20jordan",
+        "https://www.footlocker.co.uk/en/search?query=air%20jordan%202",
+        "https://www.footlocker.co.uk/en/search?query=air%20force%201",
+        "https://www.footlocker.co.uk/en/search?query=nike%20dunk",
+        "https://www.footlocker.co.uk/en/search?query=killshot",
+        "https://www.footlocker.co.uk/en/search?query=onitsuka%20tiger"
       ]
     }
   }
