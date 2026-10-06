@@ -56,6 +56,93 @@
         "https://www.footlocker.co.uk/en/search?query=killshot",
         "https://www.footlocker.co.uk/en/search?query=onitsuka%20tiger"
       ]
+    },
+    "jd": {
+      "type": "jd",
+      "queries": [
+        "air max 90",
+        "air max 95",
+        "air max 97",
+        "air jordan",
+        "air jordan 2",
+        "air force 1",
+        "nike dunk",
+        "killshot"
+      ]
+    },
+    "asos": {
+      "type": "asos",
+      "queries": [
+        "nike air max 90",
+        "nike air max 95",
+        "nike air max 97",
+        "air jordan",
+        "air jordan 2",
+        "nike air force 1",
+        "nike dunk",
+        "nike killshot"
+      ],
+      "delay": 2
+    },
+    "very": {
+      "type": "very",
+      "queries": [
+        "nike air max 90",
+        "nike air max 95",
+        "nike air max 97",
+        "air jordan",
+        "air jordan 2",
+        "nike air force 1",
+        "nike dunk",
+        "nike killshot"
+      ],
+      "delay": 8
+    },
+    "onitsuka": {
+      "type": "onitsuka",
+      "lists": [
+        "https://www.onitsukatiger.com/gb/en-gb/mexico-66/",
+        "https://www.onitsukatiger.com/gb/en-gb/men/shoes/",
+        "https://www.onitsukatiger.com/gb/en-gb/catalogsearch/result/?q=moage",
+        "https://www.onitsukatiger.com/gb/en-gb/catalogsearch/result/?q=tokuten",
+        "https://www.onitsukatiger.com/gb/en-gb/catalogsearch/result/?q=edr+78",
+        "https://www.onitsukatiger.com/gb/en-gb/catalogsearch/result/?q=colorado+85"
+      ]
+    },
+    "schuh": {
+      "type": "schuh",
+      "queries": [
+        "nike air max 90",
+        "nike air force 1"
+      ],
+      "delay": 8
+    },
+    "vinted": {
+      "type": "vinted",
+      "queries": [
+        "air jordan 2 uk 8.5",
+        "air jordan 2 uk 9",
+        "air jordan 2"
+      ],
+      "resale_only_lines": [
+        "Air Jordan 2"
+      ]
+    },
+    "goat": {
+      "type": "goat",
+      "queries": [
+        "air jordan 2"
+      ],
+      "resale_only_lines": [
+        "Air Jordan 2"
+      ]
+    },
+    "stockx": {
+      "type": "blocked",
+      "note": "PerimeterX 403 for headless Chromium; no workaround built"
     }
-  }
+  },
+  "resale_lines": [
+    "Air Jordan 2"
+  ]
 }
