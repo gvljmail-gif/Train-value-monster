@@ -1,11 +1,12 @@
 """Build the antenatal caseload tracker workbook (macro-free .xlsx).
 
 Usage:
-    python build_tracker.py [output.xlsx] [--sample]
+    python build_tracker.py [output.xlsx] [--sample] [--demo] [--cardex]
 
 --sample fills a few fictional rows so the formulas and flags can be checked;
 --demo fills a fictional caseload (dates relative to TODAY()) to show how it works.
 The file handed over for real use is built without either.
+--cardex builds the variant for the team whose cardex also has GP, Delivering at and 41/40.
 """
 import sys
 from datetime import date, timedelta
@@ -45,26 +46,40 @@ GROUP_FILLS = {G_PAT: fill("DDEBF7"), G_AUTO: fill("EDEDED"), G_APPT: fill("E2EF
                G_ACT: fill("FCE4D6"), G_NOTES: fill("FFF2CC")}
 
 # --- columns ----------------------------------------------------------------
-# (header, width, group), left to right
-APPTS = ["16/40", "25/40", "28/40", "31/40", "34/40", "36/40", "38/40", "40/40"]
-CHAIN = ["Booking date"] + APPTS                              # read in this order
 DATE_ACTIONS = ["GTT booked", "Anti-D ordered", "BP fortnightly", "BP weekly"]  # date, then 'Done'
-COLUMNS = [
-    ("Name", 22, G_PAT), ("NHS number", 14, G_PAT), ("DOB", 11, G_PAT), ("Parity", 8, G_PAT),
-    ("MLC/CLC", 9, G_PAT), ("EDD", 11, G_PAT), ("Status", 13, G_PAT),
-    ("Gestation today", 10, G_AUTO), ("Due in 7 days", 9, G_AUTO), ("Next appt", 11, G_AUTO),
-    ("Next appt due", 11, G_AUTO),
-    ("Booking date", 11, G_APPT), ("16/40", 10, G_APPT), ("25/40", 10, G_APPT),
-    ("GTT booked", 11, G_ACT), ("Anti-D ordered", 11, G_ACT),
-    ("28/40", 10, G_APPT), ("31/40", 10, G_APPT), ("34/40", 10, G_APPT), ("36/40", 10, G_APPT),
-    ("38/40", 10, G_APPT), ("40/40", 10, G_APPT),
-    ("IOL booked", 9, G_ACT), ("BP fortnightly", 11, G_ACT), ("BP weekly", 11, G_ACT),
-    ("Risks", 40, G_NOTES), ("Last updated by", 15, G_NOTES), ("Overdue", 9, G_AUTO),
-]
-COL = {h: get_column_letter(i + 1) for i, (h, _, _) in enumerate(COLUMNS)}
-LAST_COL = get_column_letter(len(COLUMNS))
-EDD, STATUS, NAME = COL["EDD"], COL["Status"], COL["Name"]
-UPD_BY, NHS, BOOK = COL["Last updated by"], COL["NHS number"], COL["Booking date"]
+
+
+def configure(variant="standard"):
+    """Set the column layout. 'cardex' adds GP and Delivering at after MLC/CLC and a 41/40
+    appointment after 40/40; everything else (formulas, colours) follows from the layout."""
+    global VARIANT, APPTS, CHAIN, COLUMNS, COL, LAST_COL, EDD, STATUS, NAME, UPD_BY, NHS, BOOK
+    VARIANT = variant
+    cardex = variant == "cardex"
+    APPTS = ["16/40", "25/40", "28/40", "31/40", "34/40", "36/40", "38/40", "40/40"]
+    if cardex:
+        APPTS.append("41/40")
+    CHAIN = ["Booking date"] + APPTS                          # read in this order
+    # (header, width, group), left to right
+    COLUMNS = (
+        [("Name", 22, G_PAT), ("NHS number", 14, G_PAT), ("DOB", 11, G_PAT), ("Parity", 8, G_PAT),
+         ("MLC/CLC", 9, G_PAT)]
+        + ([("GP", 16, G_PAT), ("Delivering at", 16, G_PAT)] if cardex else [])
+        + [("EDD", 11, G_PAT), ("Status", 13, G_PAT),
+           ("Gestation today", 10, G_AUTO), ("Due in 7 days", 9, G_AUTO), ("Next appt", 11, G_AUTO),
+           ("Next appt due", 11, G_AUTO),
+           ("Booking date", 11, G_APPT), ("16/40", 10, G_APPT), ("25/40", 10, G_APPT),
+           ("GTT booked", 11, G_ACT), ("Anti-D ordered", 11, G_ACT)]
+        + [(a, 10, G_APPT) for a in APPTS[2:]]
+        + [("IOL booked", 9, G_ACT), ("BP fortnightly", 11, G_ACT), ("BP weekly", 11, G_ACT),
+           ("Risks", 40, G_NOTES), ("Last updated by", 15, G_NOTES), ("Overdue", 9, G_AUTO)]
+    )
+    COL = {h: get_column_letter(i + 1) for i, (h, _, _) in enumerate(COLUMNS)}
+    LAST_COL = get_column_letter(len(COLUMNS))
+    EDD, STATUS, NAME = COL["EDD"], COL["Status"], COL["Name"]
+    UPD_BY, NHS, BOOK = COL["Last updated by"], COL["NHS number"], COL["Booking date"]
+
+
+configure()
 
 STATUSES = ["Active", "Delivered", "Transferred out", "Care ended"]
 DATE_FMT = "dd/mm/yyyy"
@@ -81,7 +96,7 @@ def entered(x):
 
 
 def last_entry(r):
-    """Latest date/DNA along Booking date..40/40 ("" if none). The appointment columns
+    """Latest date/DNA along Booking date..last appointment ("" if none). The appointment columns
     aren't contiguous (GTT and Anti-D sit between them), so this is a nested IF."""
     acc = '""'
     for c in CHAIN:
@@ -188,7 +203,7 @@ def build(path, sample=False, demo=False):
         ws[f"{COL['Next appt']}{r}"] = (
             f'=IF(NOT({act}),"",IF({nd}<>"",{label},'
             f'IF({last}="DNA","Rebook DNA",IF(ISNUMBER({last}),'
-            f'IF(ISNUMBER(${COL["40/40"]}{r}),"Update status","Missed/not booked?"),""))))')
+            f'IF(ISNUMBER(${COL[APPTS[-1]]}{r}),"Update status","Missed/not booked?"),""))))')
 
     ws.freeze_panes = f"B{FIRST}"
 
@@ -210,7 +225,7 @@ def build(path, sample=False, demo=False):
     cf(f"A{r}:{LAST_COL}{LAST}", f'AND(${NAME}{r}<>"",${STATUS}{r}<>"",${STATUS}{r}<>"Active")',
        COMPLETE, "808080", italic=True)
     # Appointments: a past date is confirmed once anything later in the chain is entered.
-    # 40/40 has nothing after it, so a past 40/40 stays red until Status changes.
+    # The last appointment has nothing after it, so once past it stays red until Status changes.
     for i, name in enumerate(CHAIN):
         x = f"{COL[name]}{r}"
         later = [f"${COL[c]}{r}" for c in CHAIN[i + 1:]]
@@ -350,7 +365,7 @@ def build(path, sample=False, demo=False):
              "greys out the whole row to show it's complete, and stops its flags."),
         ("", "• Grey columns (Gestation, Due in 7 days, Next appt, Next appt due, Overdue) are calculated, "
              "so don't type in them."),
-        ("", "• Booking date and appointments (16/40 to 40/40): enter each date when it's booked. 16/40 is "
+        ("", f"• Booking date and appointments (16/40 to {APPTS[-1]}): enter each date when it's booked. 16/40 is "
              "added at booking, 25/40 at the 16/40 appointment, and so on. Empty future columns are fine."),
         ("", "  – An appointment only counts as attended once a later date has been entered, because the "
              "next date can only be booked at that appointment. So a past date turns green only when "
@@ -362,7 +377,7 @@ def build(path, sample=False, demo=False):
              "N/A slots are skipped (e.g. 25/40 or 31/40 for multips)."),
         ("", "  – DNA: red until a later date is entered. Either type the rebooked date over the DNA, or "
              "leave DNA in place and put the new date in the next column; the DNA then stays visible in grey."),
-        ("", "  – 40/40 has nothing after it, so once it has passed it stays red ('Update status') until "
+        ("", f"  – {APPTS[-1]} has nothing after it, so once it has passed it stays red ('Update status') until "
              "Status is changed, e.g. to Delivered."),
         ("", "• GTT booked, Anti-D ordered, BP fortnightly, BP weekly: enter the date it's booked or due. It turns amber "
              "within 7 days and red once the date has passed. When it's done, overwrite it with 'Done' "
@@ -556,5 +571,7 @@ def add_demo(wb):
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if "--cardex" in sys.argv:
+        configure("cardex")
     build(args[0] if args else "Antenatal_Caseload_Tracker.xlsx",
           sample="--sample" in sys.argv, demo="--demo" in sys.argv)

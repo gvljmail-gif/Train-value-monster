@@ -1,11 +1,13 @@
 """Build the import helper: rearranges an old caseload sheet into the tracker's columns.
 
 Usage:
-    python build_import_helper.py [output.xlsx] [--sample]
+    python build_import_helper.py [output.xlsx] [--sample] [--cardex]
 
-The old sheet is pasted (header row in row 1) onto 'Paste old sheet'. 'Converted' looks up
-each old column by its header and lays the data out in the tracker's column order, ready to
-paste as values into the Caseload tab. --sample fills a fictional old sheet for testing.
+The old sheet is pasted as-is onto 'Paste old sheet'. 'Converted' finds each old column by its
+heading (in the row named on 'Start here', C3) and lays the data out in the tracker's column
+order, ready to paste as values into the Caseload tab. --cardex builds the converter for the
+cardex-style sheet (headings in row 2, GP / Delivering at / Complications / 41/40).
+--sample fills a fictional old sheet for testing.
 """
 import sys
 from datetime import date, timedelta
@@ -14,29 +16,39 @@ from openpyxl import Workbook
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 
 import build_tracker as bt
 
 ROWS = 400
 DATA0 = 6                      # first data row on 'Converted'
 PASTE = "'Paste old sheet'"
-PASTE_RANGE = f"{PASTE}!$A$2:$BZ${ROWS + 1}"
+PASTE_RANGE = f"{PASTE}!$A$1:$BZ${ROWS + 50}"
+HDR_ROW = "'Start here'!$C$3"   # row of the old sheet's column headings (1-10)
+# The heading row as a range: CHOOSE over fixed rows keeps this to plain, non-volatile Excel.
+HEADINGS = f"CHOOSE({HDR_ROW}," + ",".join(f"{PASTE}!$A${i}:$BZ${i}" for i in range(1, 11)) + ")"
 
-# Tracker column -> start of the matching header in the old sheet (case-insensitive).
-OLD_HEADERS = {
-    "Name": "name", "NHS number": "nhs", "DOB": "dob", "Parity": "parity", "MLC/CLC": "mlc",
-    "EDD": "edd", "Booking date": "booking", "Risks": "info",
-    **{a: a for a in bt.APPTS},
-}
-AUTO = {c for c, _, g in bt.COLUMNS if g == bt.G_AUTO}
-DATE_COLS = {"DOB", "EDD", *bt.CHAIN, *bt.DATE_ACTIONS}
+
+def old_headers():
+    """Tracker column -> start of the matching heading in the old sheet (case-insensitive)."""
+    m = {"Name": "name", "NHS number": "nhs", "DOB": "dob", "Parity": "parity", "MLC/CLC": "mlc",
+         "EDD": "edd", "Booking date": "booking", "Risks": "info", **{a: a for a in bt.APPTS}}
+    if bt.VARIANT == "cardex":
+        # 'deliver' also matches the cardex's 'Deliverying at' spelling
+        m.update({"GP": "gp", "Delivering at": "deliver", "Risks": "complications"})
+        del m["Booking date"]
+    return m
+
+
+def auto_cols():
+    return {c for c, _, g in bt.COLUMNS if g == bt.G_AUTO}
 
 
 def blocks():
     """Runs of consecutive tracker input columns: [(first_header, last_header), ...]."""
     runs, cur = [], []
     for h, _, _ in bt.COLUMNS:
-        if h in AUTO:
+        if h in auto_cols():
             if cur:
                 runs.append((cur[0], cur[-1]))
             cur = []
@@ -51,26 +63,43 @@ def build(path, sample=False):
     wb = Workbook()
     font = Font(name=bt.FONT, size=10)
     runs = blocks()
+    AUTO, OLD = auto_cols(), old_headers()
+    DATE_COLS = {"DOB", "EDD", *bt.CHAIN, *bt.DATE_ACTIONS}
+    cardex = bt.VARIANT == "cardex"
 
     # ---- Start here -------------------------------------------------------
     st = wb.active
     st.title = "Start here"
     st.column_dimensions["A"].width = 3
     st.column_dimensions["B"].width = 105
+    st["B2"] = "Moving the old caseload sheet into the new tracker"
+    st["B2"].font = Font(name=bt.FONT, size=14, bold=True, color="1F4E79")
+    st["B3"] = "Row number of the column headings in the pasted sheet:"
+    st["B3"].alignment = Alignment(horizontal="right")
+    st["B3"].font = Font(name=bt.FONT, size=10, bold=True)
+    st["C3"] = 2 if cardex else 1
+    st["C3"].fill, st["C3"].font = bt.INPUT_YELLOW, Font(name=bt.FONT, size=12, bold=True, color="0000FF")
+    st["C3"].alignment = Alignment(horizontal="center")
+    st.column_dimensions["C"].width = 8
+    v = DataValidation(type="whole", operator="between", formula1="1", formula2="10",
+                       showErrorMessage=True, errorTitle="Heading row", error="Enter a row number from 1 to 10.")
+    v.add("C3")
+    st.add_data_validation(v)
     steps = [
-        ("h", "Moving the old caseload sheet into the new tracker"),
         ("", "Everything happens inside Excel on your work computer. Patient data never needs to be "
              "emailed or uploaded anywhere."),
         ("s", "1. Paste the old sheet"),
         ("", "Open the old sheet, click the grey box top-left of the grid (selects everything) and Ctrl+C. "
              "Come back here, click cell A1 on the 'Paste old sheet' tab and Ctrl+V."),
-        ("", "The column headings (Name, NHS number, edd, 16/40 ...) must end up in row 1. If the old sheet "
-             "has a title above the headings, delete those rows on the 'Paste old sheet' tab."),
+        ("", "Check the yellow box above (C3) matches the row the column headings (Name, NHS, EDD, 16/40 ...) "
+             "are in on the 'Paste old sheet' tab. " + ("It's set to 2 for the cardex, whose headings are in "
+             "row 2." if cardex else "It's set to 1.") + " Everything below the headings is treated as patients."),
         ("s", "2. Check the matching"),
         ("", "On the 'Converted' tab, row 4 shows which old heading was found for each new column."),
         ("", "• 'NOT FOUND' (red): the old heading is spelled differently. Change the yellow cell in row 3 "
              "to the start of the old heading (capitals don't matter)."),
-        ("", "• '(new column)': the old sheet didn't have it (GTT, Anti-D, IOL ...), so it's left blank."),
+        ("", "• '(new column)': the old sheet didn't have it (" + ("Status, Booking date, GTT, Anti-D, IOL ..."
+             if cardex else "GTT, Anti-D, IOL ...") + "), so it's left blank."),
         ("", "• Orange cells in the data: a date column holds text Excel can't read as a date "
              "(e.g. '12/3' or 'seen'). Fix these in the tracker after pasting."),
         ("s", "3. Copy into the tracker (paste as VALUES)"),
@@ -87,11 +116,13 @@ def build(path, sample=False):
         ("", "• Set Status for anyone who has delivered or left, so their rows grey out."),
         ("", "• Past appointment dates with nothing after them will show red. That's the tracker doing "
              "its job: check each one."),
-        ("", "• Fill in the new columns (GTT, Anti-D, IOL, BP, Last updated by) as you go. The old info column goes into Risks."),
+        ("", "• Fill in the new columns (" + ("Booking date, " if cardex else "") + "GTT, Anti-D, IOL, BP, "
+             "Last updated by) as you go. The old " + ("Complications" if cardex else "info") +
+             " column goes into Risks."),
         ("s", "5. Delete this helper file"),
         ("", "It now holds a copy of patient data. Delete it once the tracker looks right."),
     ]
-    for i, (kind, text) in enumerate(steps, start=2):
+    for i, (kind, text) in enumerate(steps, start=5):
         c = st.cell(row=i, column=2, value=text)
         c.alignment = Alignment(wrap_text=True, vertical="top")
         c.font = (Font(name=bt.FONT, size=14, bold=True, color="1F4E79") if kind == "h" else
@@ -124,14 +155,14 @@ def build(path, sample=False):
                 cv[f"{L}{r}"].fill = bt.GREY
             continue
         look = cv[f"{L}3"]
-        look.value, look.fill = OLD_HEADERS.get(h, ""), bt.INPUT_YELLOW
+        look.value, look.fill = OLD.get(h, ""), bt.INPUT_YELLOW
         look.font = Font(name=bt.FONT, size=9, color="0000FF")
-        cv[f"{L}5"] = f'=IF({L}3="","",IFERROR(MATCH({L}3&"*",{PASTE}!$A$1:$BZ$1,0),""))'
-        cv[f"{L}4"] = (f'=IF({L}3="","(new column)",IF(ISNUMBER({L}5),INDEX({PASTE}!$A$1:$BZ$1,{L}5),'
+        cv[f"{L}5"] = f'=IF({L}3="","",IFERROR(MATCH({L}3&"*",{HEADINGS},0),""))'
+        cv[f"{L}4"] = (f'=IF({L}3="","(new column)",IF(ISNUMBER({L}5),INDEX({HEADINGS},{L}5),'
                        f'"NOT FOUND"))')
         cv[f"{L}4"].font = Font(name=bt.FONT, size=9, italic=True)
         cv[f"{L}5"].font = Font(name=bt.FONT, size=8, color="A6A6A6")
-        get = f"INDEX({PASTE_RANGE},ROW()-{DATA0 - 1},{L}$5)"
+        get = f"INDEX({PASTE_RANGE},{HDR_ROW}+ROW()-{DATA0 - 1},{L}$5)"
         for r in range(DATA0, DATA0 + ROWS):
             cv[f"{L}{r}"] = f'=IF(ISNUMBER({L}$5),IF({get}="","",{get}),"")'
             cv[f"{L}{r}"].font = font
@@ -150,7 +181,7 @@ def build(path, sample=False):
     cv.row_dimensions[2].height = 30
 
     if sample:
-        add_sample(ps)
+        (add_sample_cardex if cardex else add_sample)(ps)
     wb.active = 0
     wb.save(path)
 
@@ -168,6 +199,21 @@ def add_sample(ps):
                t - timedelta(days=180), t - timedelta(days=150), "N/A", "12/3", "DNA", None, None, None, None, ""])
 
 
+def add_sample_cardex(ps):
+    """Fictional cardex: blank column A, headings in row 2 (with its spellings), 41/40."""
+    t = date.today()
+    d = lambda n: t + timedelta(days=n)
+    ps.append([])
+    ps.append([None, "Name", "NHS", "DOB", "Parity", "GP", "MLC/CLC", "Deliverying at", "EDD", "Complications",
+               "16/40", "25/40", "28/40", "31/40", "34/40", "36/40", "38/40", "40/40", "41/40"])
+    ps.append([None, "Test Cardex", 9993982598, date(1995, 3, 14), "G1P0", "Dr Test", "CLC", "Test Hospital",
+               d(-5), "GDM", d(-170), d(-100), d(-79), d(-58), d(-37), d(-23), d(-9), d(-5), d(2)])
+    ps.append([None, "Test Two", "999 791 9076", date(1990, 7, 2), "G2P1", "Test Surgery", "MLC", "Home",
+               d(40), "", d(-100), "N/A", "12/3", None, None, None, None, None, None])
+
+
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if "--cardex" in sys.argv:
+        bt.configure("cardex")
     build(args[0] if args else "Import_Helper.xlsx", sample="--sample" in sys.argv)
