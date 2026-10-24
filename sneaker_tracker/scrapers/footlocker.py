@@ -1,8 +1,9 @@
-"""Foot Locker UK listing pages. Prices from cards; sizes are listed, not stock-verified."""
+"""Foot Locker UK listing pages. Prices from cards; deal candidates are stock-checked on the product page,
+whose size buttons are marked "Sold Out" when a size has no stock."""
 import json
 import re
 from bs4 import BeautifulSoup
-from .common import classify, fetch_html, num, pct
+from .common import classify, fetch_html, norm_uk, num, pct
 
 BASE = "https://www.footlocker.co.uk"
 
@@ -36,10 +37,18 @@ async def scrape_list(ctx, url):
     return s, (parse_list(h) if h else [])
 
 
+def parse_sizes(html):
+    """{uk_size: in_stock} from size buttons: aria-label 'Size: 8.5' or 'Size: 9 - Sold Out'."""
+    sizes = {}
+    for b in BeautifulSoup(html, "lxml").select('button[aria-label^="Size:"]'):
+        label = b["aria-label"][5:].strip()
+        uk = norm_uk(label.split(" - ")[0])
+        if uk:
+            sizes[uk] = sizes.get(uk, False) or "sold out" not in label.lower()
+    return sizes
+
+
 async def check_sizes(ctx, url):
     s, h = await fetch_html(ctx, url, 3000)
-    sizes = {}
-    if h:
-        for b in BeautifulSoup(h, "lxml").select('button[aria-label^="Size:"]'):
-            sizes[b["aria-label"][6:].strip()] = True
-    return s, sizes
+    sizes = parse_sizes(h) if h else {}
+    return {"http": s, "sizes": sizes, "verified": bool(sizes)}

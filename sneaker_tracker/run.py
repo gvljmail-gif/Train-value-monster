@@ -1,26 +1,30 @@
 """Run all scrapers, verify 8.5/9 stock where possible, write a dated snapshot + coverage table.
 
-Usage (from repo root): /usr/bin/python3.13 -m sneaker_tracker.run
+Usage (from repo root): python3.13 -m sneaker_tracker.run
 
 Stock semantics per item (`sizes` = {'8.5': bool|None, '9': ...}):
-  stock_verified=True  -> sizes come from a real stock field (size?, Footpatrol, JD)
-  stock_verified=False -> sizes merely *listed* on the product page, or unknown (None): report "check stock"
+  stock_verified=True  -> sizes come from a real stock signal: Shopify `available` (size?, Footpatrol, END.),
+                          JD's in-stock size list, or the product page (ASOS isInStock, Foot Locker
+                          "Sold Out" buttons, Nike schema.org offers)
+  stock_verified=False -> stock unknown (None): prices-only source or the product-page check failed -> "check stock"
 Resale items (`resale: True`) are kept only for styles in config `resale_lines` (out of production).
+
+Fetch policy: each page is retried with backoff when blocked (403/429/timeout) or when it comes back empty
+but normally has items; after `breaker` consecutive blocked pages a source is left alone for the rest of the run.
 """
 import asyncio
 import datetime
 import json
-import pathlib
 
-from .scrapers import asos, end, footlocker, footpatrol, goat, jd, jdgroup, nike, onitsuka, schuh, very, vinted
-from .scrapers.common import adult_mens, browser_context, classify
+from . import health
+from .rules import CFG, ROOT, SIZES, is_candidate, label, lanes
+from .scrapers import asos, footlocker, goat, jd, nike, onitsuka, shopify, very, vinted
+from .scrapers.common import adult_mens, browser_context
 
-ROOT = pathlib.Path(__file__).parent
-CFG = json.loads((ROOT / "config.json").read_text())
-SIZES, THRESH = CFG["sizes"], CFG["deal_threshold_pct"]
-LIST_MODS = {"nike": nike, "end": end, "footlocker": footlocker, "onitsuka": onitsuka}
-SEARCH_MODS = {"jd": jd, "asos": asos, "very": very, "schuh": schuh, "vinted": vinted, "goat": goat}
-SIZE_CHECK = {"nike": nike, "end": end, "footlocker": footlocker}  # product pages list sizes (unverified stock)
+LIST_MODS = {"nike": nike, "footlocker": footlocker, "onitsuka": onitsuka}
+SEARCH_MODS = {"jd": jd, "asos": asos, "very": very, "vinted": vinted, "goat": goat}
+SIZE_CHECK = {"nike": nike, "footlocker": footlocker, "asos": asos}  # stock read from the product page
+CHECKS_PER_SOURCE = 3  # simultaneous product-page checks per retailer
 
 
 def cov(src, url, status, n, note=""):
@@ -28,60 +32,69 @@ def cov(src, url, status, n, note=""):
     return {"source": src, "url": url, "http": status, "items": n, "result": res, "note": note}
 
 
-async def scrape_source(ctx, src, spec):
-    t, found, coverage = spec["type"], [], []
-    if t == "blocked":
+def pages(ctx, spec):
+    """[(coverage url, zero-arg coroutine factory)] for every page a source fetches."""
+    t = spec["type"]
+    if t == "shopify":
+        link = spec.get("link_base", spec["base"])
+        return [(f"{spec['base']}/collections/{h}",
+                 lambda h=h: shopify.scrape_collection(ctx, spec["base"], h, link, SIZES)) for h in spec["collections"]]
+    if t in SEARCH_MODS:
+        return [(f"search: {q}", lambda q=q: SEARCH_MODS[t].scrape_search(ctx, q)) for q in spec["queries"]]
+    return [(u, lambda u=u: LIST_MODS[t].scrape_list(ctx, u)) for u in spec["lists"]]
+
+
+async def scrape_source(ctx, src, spec, base):
+    if spec["type"] == "blocked":
         return [], [cov(src, "-", 403, 0, spec["note"])]
-    if t == "jdgroup":
-        for path in spec["lists"]:
-            s, items = await jdgroup.scrape_list(ctx, spec["base"], path)
-            for it in items:
-                it["line"] = classify(it["name"])
-            coverage.append(cov(src, spec["base"] + path, s, len(items)))
-            found += items
-    elif t == "shopify":
-        for h in spec["collections"]:
-            s, items = await footpatrol.scrape_collection(ctx, h)
-            coverage.append(cov(src, f"{footpatrol.BASE}/collections/{h}", s, len(items)))
-            found += items
-    elif t in SEARCH_MODS:
-        for i, q in enumerate(spec["queries"]):
-            if i and spec.get("delay"):
-                await asyncio.sleep(spec["delay"])  # polite spacing for sites that rate-limit (Very)
-            s, items = await SEARCH_MODS[t].scrape_search(ctx, q)
-            if not items and s == 200:  # rendered late or soft-blocked: one retry
-                await asyncio.sleep(4)
-                s, items = await SEARCH_MODS[t].scrape_search(ctx, q)
-            coverage.append(cov(src, f"search: {q}", s, len(items)))
-            found += items
-    else:
-        for url in spec["lists"]:
-            s, items = await LIST_MODS[t].scrape_list(ctx, url)
-            coverage.append(cov(src, url, s, len(items)))
-            found += items
+    found, coverage, blocked_run = [], [], 0
+    backoff = spec.get("backoff", [6, 20])
+    for i, (url, fetch) in enumerate(pages(ctx, spec)):
+        if blocked_run >= spec.get("breaker", 3):
+            coverage.append(cov(src, url, None, 0, "skipped: source was blocking this run"))
+            continue
+        if i and spec.get("delay"):
+            await asyncio.sleep(spec["delay"])  # polite spacing for sites that rate-limit
+        expect = base.get((src, url), health.BROKEN_MIN) >= health.BROKEN_MIN  # unknown page: assume items
+        for attempt in range(len(backoff) + 1):
+            s, items = await fetch()
+            retry = not items and s not in (404, 410) and (s != 200 or expect)
+            if not retry or attempt == len(backoff):
+                break
+            await asyncio.sleep(backoff[attempt])
+        blocked_run = blocked_run + 1 if (not items and s in (403, 429, None)) else 0
+        coverage.append(cov(src, url, s, len(items), f"{attempt} retries" if attempt else ""))
+        found += items
     for it in found:
         it["source"] = src
     return found, coverage
 
 
-async def verify_sizes(ctx, it):
-    """Fill it['sizes'] for an item."""
-    if it.get("all_sizes") is not None:
-        it["sizes"] = {s: it["all_sizes"].get(s) for s in SIZES}
+async def verify_sizes(ctx, it, gates):
+    """Fill it['sizes'] (and stock_verified) for a deal candidate."""
+    if it.get("all_sizes") is not None:  # Shopify / JD: stock came with the listing
+        ok = bool(it.get("stock_verified"))
+        it["sizes"] = {s: (it["all_sizes"].get(s, False) if ok else None) for s in SIZES}
         return
-    if it["source"] == "size":
-        status, sz = await jdgroup.check_sizes(ctx, it["url"])
-        it["stock_verified"] = True
-    elif it["source"] in SIZE_CHECK:
-        status, sz = await SIZE_CHECK[it["source"]].check_sizes(ctx, it["url"])
-    else:
-        it["sizes"] = {s: None for s in SIZES}  # ASOS / Very / Onitsuka: not fetched
+    mod = SIZE_CHECK.get(it["source"])
+    if not mod:
+        it["sizes"] = {s: None for s in SIZES}  # Very / Onitsuka: prices only
         return
-    it["sizes"] = {s: sz.get(s) for s in SIZES}
-    it["size_check_http"] = status
+    async with gates[it["source"]]:
+        r = await mod.check_sizes(ctx, it["url"])
+        if not r["verified"] and r["http"] in (403, 429, None):
+            await asyncio.sleep(5)
+            r = await mod.check_sizes(ctx, it["url"])
+    it["stock_verified"] = r["verified"]
+    it["sizes"] = {s: (r["sizes"].get(s, False) if r["verified"] else None) for s in SIZES}
+    it["size_check_http"] = r["http"]
+    if r.get("womens_sizing"):
+        it["womens_sizing"] = True
+    if r.get("image") and not it.get("image"):
+        it["image"] = r["image"]
 
 
-def keep(it, spec):
+def keep(it):
     if not adult_mens(it["name"]):
         return False
     if it.get("resale"):
@@ -91,48 +104,52 @@ def keep(it, spec):
 
 async def main():
     today = datetime.date.today().isoformat()
+    base = health.baselines(health.history(today))
     coverage, products = [], {}
     async with browser_context() as ctx:
         async def one(src, spec):
             try:
-                return src, spec, *(await scrape_source(ctx, src, spec))
+                return src, *(await scrape_source(ctx, src, spec, base))
             except Exception as e:  # one broken source must not sink the run
-                return src, spec, [], [cov(src, "-", None, 0, f"error: {type(e).__name__}: {str(e)[:80]}")]
+                return src, [], [cov(src, "-", None, 0, f"error: {type(e).__name__}: {str(e)[:80]}")]
 
-        for src, spec, items, cv in await asyncio.gather(*(one(s, sp) for s, sp in CFG["sources"].items())):
+        for src, items, cv in await asyncio.gather(*(one(s, sp) for s, sp in CFG["sources"].items())):
             coverage += cv
             for it in items:
-                if keep(it, spec):
+                if keep(it):
                     products[it["url"]] = it
-        todo = [it for it in products.values() if not it.get("resale")
-                and ((it["discount_pct"] or 0) >= THRESH or it["line"] == "Air Jordan 2")]
-        await asyncio.gather(*(verify_sizes(ctx, it) for it in todo))
-    snap = {"date": today, "coverage": coverage, "products": list(products.values())}
+        todo = [it for it in products.values() if is_candidate(it)]
+        gates = {s: asyncio.Semaphore(CHECKS_PER_SOURCE) for s in SIZE_CHECK}
+        await asyncio.gather(*(verify_sizes(ctx, it, gates) for it in todo))
+    checks = {}
+    for it in todo:
+        if it["source"] in SIZE_CHECK:
+            c = checks.setdefault(it["source"], {"tried": 0, "verified": 0})
+            c["tried"] += 1
+            c["verified"] += bool(it.get("stock_verified"))
+    snap = {"date": today, "coverage": coverage, "stock_checks": checks, "products": list(products.values())}
+    h = health.assess(today, coverage, checks)  # also stamps each coverage row with its state
     (ROOT / "data" / f"{today}.json").write_text(json.dumps(snap, indent=1))
     (ROOT / "data" / "latest.json").write_text(json.dumps(snap, indent=1))
-    summarise(snap)
+    summarise(snap, h)
 
 
-def summarise(snap):
-    P, cov_ = snap["products"], snap["coverage"]
-    retail = [p for p in P if not p.get("resale")]
-    deals = [p for p in retail if (p["discount_pct"] or 0) >= THRESH]
-    has = lambda p: any((p.get("sizes") or {}).values())
-    live = [p for p in deals if p.get("stock_verified") and has(p)]
-    check = [p for p in deals if not (p.get("stock_verified") and has(p)) and (has(p) or not p.get("stock_verified") and None in (p.get("sizes") or {}).values())]
-    aj2_retail = [p for p in retail if p["line"] == "Air Jordan 2" and has(p)]
-    aj2_resale = [p for p in P if p.get("resale")]
-    srcs = {c["source"] for c in cov_ if c["result"] == "ok"}
-    print(f"{sum(c['result'] == 'ok' for c in cov_)}/{len(cov_)} pages ok across {len(srcs)}/{len({c['source'] for c in cov_})} sources | "
-          f"{len(P)} items | {len(deals)} >= {THRESH}% | {len(live)} LIVE verified | {len(check)} check-stock | "
-          f"AJ2: {len(aj2_retail)} retail in size, {len(aj2_resale)} resale")
-    bad = [c for c in cov_ if c["result"] != "ok"]
-    for c in bad:
-        print(f"  {c['result']:7} {c['http']} {c['source']:10} {c['url'][:70]} {c['note']}")
-    for p in live:
-        print("  LIVE ", p["source"], p["discount_pct"], p["price"], p["name"][:55], p["sizes"])
-    for p in aj2_retail + aj2_resale:
-        print("  AJ2  ", p["source"], p.get("price") or p.get("price_usd"), p["name"][:55], p.get("size") or p.get("sizes") or "")
+def summarise(snap, h):
+    P = snap["products"]
+    live, check = lanes(P)
+    aj2_retail = [p for p in P if not p.get("resale") and p["line"] == "Air Jordan 2" and any((p.get("sizes") or {}).values())]
+    aj2_resale = [p for p in P if p.get("resale") and p["source"] == "vinted"]
+    state = f"DEGRADED ({', '.join(h['reasons'])}): {h['msg']}" if h["degraded"] else f"healthy: {h['msg']}"
+    print(f"{h['up']}/{h['counted']} sources up | {len(P)} items | {len(live)} LIVE | {len(check)} check-stock | "
+          f"AJ2: {len(aj2_retail)} retail in size, {len(aj2_resale)} resale | {state}")
+    for src, v in h["sources"].items():
+        if v["status"] in ("down", "partial"):
+            print(f"  {v['status']:7} {label(src):18} {v['pages_ok']}/{v['pages']} pages  {v['why']}")
+    for src, c in snap["stock_checks"].items():
+        print(f"  stock   {label(src):18} {c['verified']}/{c['tried']} product pages verified")
+    for g in live:
+        p = g[0]
+        print("  LIVE ", label(p["source"]), f"-{p['eff_pct']}%", p["price"], p["name"][:55], p["sizes"])
 
 
 if __name__ == "__main__":

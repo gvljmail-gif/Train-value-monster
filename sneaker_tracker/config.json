@@ -6,58 +6,38 @@
   "deal_threshold_pct": 35,
   "sources": {
     "size": {
-      "type": "jdgroup",
+      "label": "size?",
+      "stock": "verified",
+      "type": "shopify",
       "base": "https://www.size.co.uk",
-      "lists": [
-        "/mens/collection/nike-air-max-95/sale/",
-        "/mens/collection/nike-air-max-90/sale/",
-        "/mens/collection/nike-air-force-1/sale/",
-        "/mens/brand/jordan/sale/",
-        "/collection/jordan-2/sale/"
+      "collections": [
+        "footwear-mens-sale",
+        "collection-jordan-2"
       ]
     },
     "footpatrol": {
+      "label": "Footpatrol",
+      "stock": "verified",
       "type": "shopify",
+      "base": "https://www.footpatrol.com",
       "collections": [
-        "sale"
-      ]
-    },
-    "nike": {
-      "type": "nike",
-      "lists": [
-        "https://www.nike.com/gb/w?q=air%20max%2090&vst=air%20max%2090",
-        "https://www.nike.com/gb/w?q=air%20max%2095&vst=air%20max%2095",
-        "https://www.nike.com/gb/w?q=air%20max%2097&vst=air%20max%2097",
-        "https://www.nike.com/gb/w?q=air%20jordan&vst=air%20jordan",
-        "https://www.nike.com/gb/w?q=air%20jordan%202&vst=air%20jordan%202",
-        "https://www.nike.com/gb/w?q=air%20force%201&vst=air%20force%201",
-        "https://www.nike.com/gb/w?q=nike%20dunk&vst=nike%20dunk",
-        "https://www.nike.com/gb/w?q=killshot&vst=killshot"
+        "footwear-mens-sale"
       ]
     },
     "end": {
-      "type": "end",
-      "lists": [
-        "https://www.endclothing.com/gb/sale/nike",
-        "https://www.endclothing.com/gb/sale/nike?page=2",
-        "https://www.endclothing.com/gb/sale/nike?page=3"
-      ]
-    },
-    "footlocker": {
-      "type": "footlocker",
-      "lists": [
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2090",
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2095",
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2097",
-        "https://www.footlocker.co.uk/en/search?query=air%20jordan",
-        "https://www.footlocker.co.uk/en/search?query=air%20jordan%202",
-        "https://www.footlocker.co.uk/en/search?query=air%20force%201",
-        "https://www.footlocker.co.uk/en/search?query=nike%20dunk",
-        "https://www.footlocker.co.uk/en/search?query=killshot",
-        "https://www.footlocker.co.uk/en/search?query=onitsuka%20tiger"
+      "label": "END.",
+      "stock": "verified",
+      "type": "shopify",
+      "base": "https://www.endclothing.com",
+      "link_base": "https://www.endclothing.com/gb",
+      "collections": [
+        "nike",
+        "air-jordan"
       ]
     },
     "jd": {
+      "label": "JD Sports",
+      "stock": "verified",
       "type": "jd",
       "queries": [
         "air max 90",
@@ -71,6 +51,9 @@
       ]
     },
     "asos": {
+      "label": "ASOS",
+      "stock": "verified",
+      "stock_how": "product page",
       "type": "asos",
       "queries": [
         "nike air max 90",
@@ -84,21 +67,58 @@
       ],
       "delay": 2
     },
+    "footlocker": {
+      "label": "Foot Locker UK",
+      "stock": "verified",
+      "stock_how": "product page",
+      "type": "footlocker",
+      "lists": [
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2090",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2095",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2097",
+        "https://www.footlocker.co.uk/en/search?query=air%20jordan",
+        "https://www.footlocker.co.uk/en/search?query=air%20jordan%202",
+        "https://www.footlocker.co.uk/en/search?query=air%20force%201",
+        "https://www.footlocker.co.uk/en/search?query=nike%20dunk",
+        "https://www.footlocker.co.uk/en/search?query=killshot",
+        "https://www.footlocker.co.uk/en/search?query=onitsuka%20tiger"
+      ]
+    },
+    "nike": {
+      "label": "Nike UK",
+      "stock": "verified",
+      "stock_how": "product page",
+      "type": "nike",
+      "lists": [
+        "https://www.nike.com/gb/w?q=air%20max%2090&vst=air%20max%2090",
+        "https://www.nike.com/gb/w?q=air%20max%2095&vst=air%20max%2095",
+        "https://www.nike.com/gb/w?q=air%20max%2097&vst=air%20max%2097",
+        "https://www.nike.com/gb/w?q=air%20jordan&vst=air%20jordan",
+        "https://www.nike.com/gb/w?q=air%20jordan%202&vst=air%20jordan%202",
+        "https://www.nike.com/gb/w?q=air%20force%201&vst=air%20force%201",
+        "https://www.nike.com/gb/w?q=nike%20dunk&vst=nike%20dunk",
+        "https://www.nike.com/gb/w?q=killshot&vst=killshot"
+      ]
+    },
     "very": {
+      "label": "Very",
+      "stock": "prices only",
+      "was_price": false,
       "type": "very",
       "queries": [
         "nike air max 90",
-        "nike air max 95",
-        "nike air max 97",
-        "air jordan",
-        "air jordan 2",
         "nike air force 1",
         "nike dunk",
-        "nike killshot"
+        "nike air max 95",
+        "nike air max 97"
       ],
-      "delay": 8
+      "delay": 10,
+      "backoff": [],
+      "breaker": 2
     },
     "onitsuka": {
+      "label": "Onitsuka Tiger UK",
+      "stock": "prices only",
       "type": "onitsuka",
       "lists": [
         "https://www.onitsukatiger.com/gb/en-gb/mexico-66/",
@@ -109,37 +129,38 @@
         "https://www.onitsukatiger.com/gb/en-gb/catalogsearch/result/?q=colorado+85"
       ]
     },
-    "schuh": {
-      "type": "schuh",
-      "queries": [
-        "nike air max 90",
-        "nike air force 1"
-      ],
-      "delay": 8
-    },
     "vinted": {
+      "label": "Vinted",
+      "stock": "resale",
       "type": "vinted",
       "queries": [
         "air jordan 2 uk 8.5",
         "air jordan 2 uk 9",
         "air jordan 2"
       ],
-      "resale_only_lines": [
-        "Air Jordan 2"
-      ]
+      "delay": 5
     },
     "goat": {
+      "label": "GOAT",
+      "stock": "resale ref",
       "type": "goat",
       "queries": [
         "air jordan 2"
-      ],
-      "resale_only_lines": [
-        "Air Jordan 2"
       ]
     },
-    "stockx": {
+    "schuh": {
+      "label": "Schuh",
+      "stock": "-",
       "type": "blocked",
-      "note": "PerimeterX 403 for headless Chromium; no workaround built"
+      "expected_blocked": true,
+      "note": "Cloudflare challenge for automated browsers; no parser built"
+    },
+    "stockx": {
+      "label": "StockX",
+      "stock": "-",
+      "type": "blocked",
+      "expected_blocked": true,
+      "note": "PerimeterX 403 for automated browsers; no workaround built"
     }
   },
   "resale_lines": [
@@ -153,6 +174,9 @@
     "Dunk": 115
   },
   "rrp_tolerance": 1.15,
-  "min_sources_ok": 8,
-  "max_check_cards": 24
+  "min_sources_ok": 9,
+  "max_check_cards": 24,
+  "new_window_days": 7,
+  "ping_on_live": "any",
+  "ping_on_aj2": "new"
 }
