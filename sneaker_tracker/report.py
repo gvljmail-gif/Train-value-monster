@@ -168,9 +168,10 @@ def card_notes(p):
 
 def deal_card(g, assets, new_urls):
     p = g[0]
-    new = '<span class="new">NEW</span>' if p["url"] in new_urls else ""
+    is_new = p["url"] in new_urls
+    new = '<span class="new">NEW</span>' if is_new else ""
     also = "".join(f'<li><a href="{esc(o["url"])}" target="_blank" rel="noopener">{esc(label(o["source"]))}</a> {money(o["price"])}</li>' for o in g[1:])
-    return f"""<article class="card">{photo(assets, p.get("image"))}<div class="body">
+    return f"""<article class="card{' is-new' if is_new else ''}">{photo(assets, p.get("image"))}<div class="body">
 <div class="row"><h3>{esc(p["name"])}</h3><span class="badge">-{p["eff_pct"]}%</span></div>{new}
 <div class="price"><b>{money(p["price"])}</b><s>{money(p["eff_rrp"])}</s></div>
 <div class="chips">{chips(p)}</div>{card_notes(p)}
@@ -214,9 +215,15 @@ def render(snap, recent, assets):
 
     def section_lines(groups):
         out = []
+        lanes = []
         for line in ORDER:
             gs = [g for g in groups if g[0]["line"] == line or (line == "Jordan" and g[0]["line"] == "Air Jordan 2")]
+            gs.sort(key=lambda g: g[0]["url"] not in new_urls)  # newest first, then biggest discount (stable)
             if gs:
+                lanes.append((line, gs))
+        lanes.sort(key=lambda l: not any(g[0]["url"] in new_urls for g in l[1]))  # lanes with new deals first
+        for line, gs in lanes:
+            if True:
                 out.append(f'<h3 class="line">{esc(line)}</h3><div class="grid">' + "".join(deal_card(g, assets, new_urls) for g in gs) + "</div>")
         return "".join(out) or '<p class="empty">Nothing in this lane today.</p>'
 
@@ -226,11 +233,11 @@ def render(snap, recent, assets):
 
     def aj2_card(p, chip_html):
         new = '<span class="new">NEW</span>' if p in new_aj2 else ""
-        return f"""<article class="card">{photo(assets, p.get("image"))}<div class="body"><h3>{esc(p["name"])}</h3>{new}
+        return f"""<article class="card{' is-new' if new else ''}">{photo(assets, p.get("image"))}<div class="body"><h3>{esc(p["name"])}</h3>{new}
 <div class="price"><b>{money(p["price"])}</b></div><div class="chips">{chip_html}</div>
 <div class="src"><span>{esc(label(p["source"]))}</span><a href="{esc(p["url"])}" target="_blank" rel="noopener">View</a></div></div></article>"""
 
-    vin = "".join(aj2_card(p, f'<span class="chip yes">UK {esc(p.get("size", "?"))}</span><span class="chip">{esc(p.get("condition", ""))}</span>') for p in vinted)
+    vin = "".join(aj2_card(p, f'<span class="chip yes">UK {esc(p.get("size", "?"))}</span><span class="chip">{esc(p.get("condition", ""))}</span>') for p in sorted(vinted, key=lambda p: p not in new_aj2))
     ret = "".join(aj2_card(p, chips(p)) for p in aj_retail)
     goat_rows = "".join(
         f'<tr><td><a href="{esc(p["url"])}" target="_blank" rel="noopener">{esc(p["name"])}</a></td><td class="n">{("$%.0f" % p["price_usd"]) if p.get("price_usd") else "-"}</td><td class="n">{("$%.0f" % p["retail_usd"]) if p.get("retail_usd") else "-"}</td></tr>' for p in goat)
