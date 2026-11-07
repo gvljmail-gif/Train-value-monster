@@ -73,12 +73,12 @@
       "stock_how": "product page",
       "type": "footlocker",
       "lists": [
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2090",
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2095",
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2097",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2090%20men",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2095%20men",
+        "https://www.footlocker.co.uk/en/search?query=air%20max%2097%20men",
         "https://www.footlocker.co.uk/en/search?query=air%20jordan",
         "https://www.footlocker.co.uk/en/search?query=air%20jordan%202",
-        "https://www.footlocker.co.uk/en/search?query=air%20force%201",
+        "https://www.footlocker.co.uk/en/search?query=nike%20air%20force%201",
         "https://www.footlocker.co.uk/en/search?query=nike%20dunk",
         "https://www.footlocker.co.uk/en/search?query=killshot",
         "https://www.footlocker.co.uk/en/search?query=onitsuka%20tiger"
