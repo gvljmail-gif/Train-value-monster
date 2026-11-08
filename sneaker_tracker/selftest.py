@@ -35,6 +35,32 @@ def check_footlocker():
     html = ('<button aria-label="Size: 8.5">8.5</button><button aria-label="Size: 9 - Sold Out">9</button>'
             '<button aria-label="Size: 6 (EU 40)">6</button>')
     assert footlocker.parse_sizes(html) == {"8.5": True, "9": False, "6": True}
+    # search page: products come from the embedded server state (shape seen 8 Nov 2026), not the grid
+    prod = lambda name, sku, price, was: {
+        "name": name, "sku": sku, "price": {"value": price}, "originalPrice": {"value": was},
+        "baseOptions": [{"selected": {"style": "White-Black"}}],
+        "images": [{"url": f"https://images.footlocker.com/is/image/FLEU/{sku}"}]}
+    state = {"api": {}, "search": {"freeTextSearch": "air max 90", "keywordRedirectUrl": "",
+                                   "pagination": {"currentPage": 0, "pageSize": 48, "totalResults": 3},
+                                   "products": [prod("Nike Air Max 90 - Men Shoes", "314206402704", 90, 134.99),
+                                                prod("Jordan Retro 3 \"World's Best Dad\" - Men Shoes", "314109679804", 155, 189.99),
+                                                prod("Nike Pegasus 41 - Men Shoes", "314100000004", 60, 120)]}}
+    import json as _json
+    page = ('<script>window.footlocker = { \t\t\t\tSTATE_FROM_SERVER: ' + _json.dumps(state)
+            + ', other: 1 };</script><div>no product grid rendered</div>')
+    items, total, skus = footlocker.parse_list(page)
+    assert total == 3 and len(skus) == 3 and len(items) == 2, items  # Pegasus: no tracked line
+    a, b = items
+    assert a["url"] == "https://www.footlocker.co.uk/en/product/nike-air-max-90-men-shoes/314206402704.html"
+    assert a["name"] == "Nike Air Max 90 Men Shoes White - Black" and a["line"] == "Air Max 90/95/97"
+    assert a["price"] == 90 and a["rrp"] == 134.99 and a["discount_pct"] == 33
+    assert a["image"] == "https://images.footlocker.com/is/image/FLEU/314206402704?wid=250&hei=250"
+    assert b["url"].endswith("/jordan-retro-3-worlds-best-dad-men-shoes/314109679804.html"), b["url"]
+    assert footlocker.slug("Nike Air Max TL 2.5 - Men Shoes") == "nike-air-max-tl-2-5-men-shoes"
+    assert footlocker.slug("Nike Air Force 1 '07 Essential - Men Shoes") == "nike-air-force-1-07-essential-men-shoes"
+    assert footlocker.parse_list("<html>challenge</html>") == ([], None, set())
+    assert footlocker._resorted("jordan:relevance:gender:Men", "price-asc") == "jordan:price-asc:gender:Men"
+    assert footlocker._resorted("killshot", "price-desc") == "killshot:price-desc"
 
 
 def check_nike():
@@ -77,6 +103,11 @@ def check_health():
     assert health.page_state(row("nike", "killshot", 200, 0), base, {}) == "quiet"
     assert health.page_state(row("jd", "q", 404, 0), base, {}) == "changed"
     assert health.page_state(row("jd", "q", 403, 0), base, {}) == "blocked"
+    # a URL with no history that comes back empty is flagged, not assumed quiet (renamed queries hid a break)
+    assert health.page_state(row("footlocker", "new", 200, 0), base, {}) == "missed"
+    unreadable = {**row("nike", "killshot", 200, 0), "unreadable": True}  # even on a normally quiet page
+    assert health.page_state(unreadable, base, {}) == "missed"
+    assert health.page_state(unreadable, base, {("nike", "killshot"): 0}) == "changed"
 
 
 if __name__ == "__main__":

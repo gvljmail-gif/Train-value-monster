@@ -4,6 +4,8 @@ variant's price, compare-at price and real `available` flag, so stock is verifie
 size? (21 Oct) and END. (rolled out 10-21 Oct) moved onto Shopify; Footpatrol already was. All three are
 fetched as browser pages (common.fetch_json) because non-browser requests get 403.
 """
+import asyncio
+
 from .common import adult_mens, classify, fetch_json, norm_uk, num, pct
 
 VENDORS = {"nike", "jordan", "air jordan", "onitsuka tiger", "asics"}
@@ -54,16 +56,27 @@ def parse_products(products, link_base, sizes):
     return out
 
 
-async def scrape_collection(ctx, base, handle, link_base, sizes, max_pages=8):
-    """Return (status, items) for one collection, following pagination until a short page."""
-    items, status = [], None
+async def scrape_collection(ctx, base, handle, link_base, sizes, max_pages=8, retry_s=6):
+    """Return (status, items, meta) for one collection, following pagination until a short page.
+    A later page that fails is retried once; if it still fails, the items so far are kept and meta['short']
+    says where the collection was cut off (END. 8 Nov: page 2 of 'nike' 403'd, 100 of ~173 items, reported ok)."""
+    items, status, meta = [], None, {}
     for page in range(1, max_pages + 1):
-        s, data = await fetch_json(ctx, f"{base}/collections/{handle}/products.json?limit={PAGE_SIZE}&page={page}")
-        status = s if page == 1 or s != 200 else status
+        url = f"{base}/collections/{handle}/products.json?limit={PAGE_SIZE}&page={page}"
+        s, data = await fetch_json(ctx, url)
+        if page > 1 and (s != 200 or not isinstance(data, dict)):
+            await asyncio.sleep(retry_s)
+            s, data = await fetch_json(ctx, url)
+        if page == 1:
+            status = s
         if s != 200 or not isinstance(data, dict):
+            if page > 1:
+                meta = {"short": f"stopped at page {page} (HTTP {s})"}
+            elif s == 200:
+                meta = {"unreadable": True}  # 200 but not products JSON (challenge page)
             break
         prods = data.get("products", [])
         items += parse_products(prods, link_base, sizes)
         if len(prods) < PAGE_SIZE:
             break
-    return status, items
+    return status, items, meta

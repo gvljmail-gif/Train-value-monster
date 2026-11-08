@@ -72,16 +72,17 @@
       "stock": "verified",
       "stock_how": "product page",
       "type": "footlocker",
-      "lists": [
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2090%20men",
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2095%20men",
-        "https://www.footlocker.co.uk/en/search?query=air%20max%2097%20men",
-        "https://www.footlocker.co.uk/en/search?query=air%20jordan",
-        "https://www.footlocker.co.uk/en/search?query=air%20jordan%202",
-        "https://www.footlocker.co.uk/en/search?query=nike%20air%20force%201",
-        "https://www.footlocker.co.uk/en/search?query=nike%20dunk",
-        "https://www.footlocker.co.uk/en/search?query=killshot",
-        "https://www.footlocker.co.uk/en/search?query=onitsuka%20tiger"
+      "queries": [
+        "air max 90:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "air max 95:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "air max 97:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "air max:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "jordan:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "air jordan 2:relevance:gender:Men:productTypes:Shoes",
+        "air force 1:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "nike dunk:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "killshot:relevance:gender:Men:productTypes:Shoes:saleProduct:True",
+        "onitsuka tiger"
       ]
     },
     "nike": {

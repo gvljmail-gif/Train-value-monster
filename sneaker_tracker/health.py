@@ -3,11 +3,13 @@
 Each page gets a state:
   ok       returned items
   quiet    HTTP 200, no items, and it normally returns few or none (e.g. a 'killshot' search)
-  missed   HTTP 200, no items, on a page that normally has >= BROKEN_MIN, for the first run: usually a slow
-           load; not alarming on its own
+  missed   HTTP 200, no items, on a page that normally has >= BROKEN_MIN (or has no history yet, e.g. a renamed
+           URL), for the first run: usually a slow load; not alarming on its own. Also a page the scraper
+           marked `unreadable` (loaded, but nothing it could parse) the first time.
   blocked  403/429/timeout: bot protection or rate limiting (often transient)
-  changed  404/410, or 'missed' two runs in a row: the site moved or its markup changed, so the scraper
+  changed  404/410, or 'missed' (or unreadable) two runs in a row: the site moved or its markup changed, so the scraper
            needs fixing (never self-heals)
+A row marked `short` (results cut off mid-way, e.g. a later Shopify page 403'd) makes its source 'partial'.
 Each source is up (some page ok), down (none), or expected (config `expected_blocked`, e.g. Schuh).
 The run is degraded when a stock-verified source is down, any page looks changed, a retailer's product-page
 stock check fails on every item, or fewer than `min_sources_ok` sources are up. The health push keys off that.
@@ -46,7 +48,11 @@ def page_state(c, base, prev):
     if c["http"] in (404, 410):
         return "changed"
     if c["http"] == 200:
-        if base.get(k, 0) < BROKEN_MIN:
+        if c.get("unreadable"):  # loaded, but no data the parser recognises: changed if it was empty last run too
+            return "changed" if prev.get(k) == 0 else "missed"
+        if k not in base:  # a page with no history (new or renamed URL): flag it rather than assume it's quiet
+            return "missed"
+        if base[k] < BROKEN_MIN:
             return "quiet"
         return "changed" if prev.get(k) == 0 else "missed"
     return "blocked"
@@ -63,8 +69,9 @@ def assess(date, coverage, checks=None):
     prev = {(c["source"], c["url"]): c["items"] for c in hist[0][1]} if hist else {}
     per = {}
     for c in coverage:
-        s = per.setdefault(c["source"], {"pages": 0, "ok": 0, "items": 0, "states": [], "http": set()})
+        s = per.setdefault(c["source"], {"pages": 0, "ok": 0, "items": 0, "states": [], "http": set(), "short": 0})
         st = page_state(c, base, prev)
+        s["short"] += bool(c.get("short"))
         s["pages"] += 1
         s["ok"] += st == "ok"
         s["items"] += c["items"]
@@ -78,7 +85,7 @@ def assess(date, coverage, checks=None):
             status = "expected"
         elif not s["ok"]:
             status = "down"
-        elif s["ok"] < s["pages"] - s["states"].count("quiet"):
+        elif s["ok"] < s["pages"] - s["states"].count("quiet") or s["short"]:
             status = "partial"
         else:
             status = "ok"
@@ -90,7 +97,8 @@ def assess(date, coverage, checks=None):
                     break
                 days += 1
         why = ("site changed" if "changed" in s["states"] else
-               "blocked" if "blocked" in s["states"] else "returned nothing" if "missed" in s["states"] else "no items")
+               "blocked" if "blocked" in s["states"] else "returned nothing" if "missed" in s["states"] else
+               "results cut off" if s["short"] else "no items")
         sources[src] = {"status": status, "pages": s["pages"], "pages_ok": s["ok"], "items": s["items"],
                         "days_down": days, "why": why if status in ("down", "partial") else "",
                         "verified": spec.get("stock") == "verified", "changed_pages": s["states"].count("changed")}

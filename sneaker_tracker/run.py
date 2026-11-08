@@ -9,7 +9,8 @@ Stock semantics per item (`sizes` = {'8.5': bool|None, '9': ...}):
   stock_verified=False -> stock unknown (None): prices-only source or the product-page check failed -> "check stock"
 Resale items (`resale: True`) are kept only for styles in config `resale_lines` (out of production).
 
-Fetch policy: each page is retried with backoff when blocked (403/429/timeout) or when it comes back empty
+Scrapers return (status, items) or (status, items, meta); see cov() for meta.
+Fetch policy: each page is retried with backoff when blocked (403/429/timeout), unreadable, or empty
 but normally has items; after `breaker` consecutive blocked pages a source is left alone for the rest of the run.
 """
 import asyncio
@@ -21,15 +22,24 @@ from .rules import CFG, ROOT, SIZES, is_candidate, label, lanes
 from .scrapers import asos, footlocker, goat, jd, nike, onitsuka, shopify, very, vinted
 from .scrapers.common import adult_mens, browser_context
 
-LIST_MODS = {"nike": nike, "footlocker": footlocker, "onitsuka": onitsuka}
-SEARCH_MODS = {"jd": jd, "asos": asos, "very": very, "vinted": vinted, "goat": goat}
+LIST_MODS = {"nike": nike, "onitsuka": onitsuka}
+SEARCH_MODS = {"jd": jd, "asos": asos, "footlocker": footlocker, "very": very, "vinted": vinted, "goat": goat}
 SIZE_CHECK = {"nike": nike, "footlocker": footlocker, "asos": asos}  # stock read from the product page
 CHECKS_PER_SOURCE = 3  # simultaneous product-page checks per retailer
 
 
-def cov(src, url, status, n, note=""):
-    res = "ok" if n else ("blocked" if status in (403, 429, None) else "empty")
-    return {"source": src, "url": url, "http": status, "items": n, "result": res, "note": note}
+def cov(src, url, status, n, note="", meta=None):
+    """One coverage row. `meta` (optional third value a scraper returns): `unreadable` = the page loaded but
+    held no data the parser could read (markup change); `short` = results were cut off (text says how)."""
+    meta = meta or {}
+    res = "ok" if n else ("blocked" if status in (403, 429, None) else "unreadable" if meta.get("unreadable") else "empty")
+    row = {"source": src, "url": url, "http": status, "items": n, "result": res,
+           "note": "; ".join(x for x in (note, meta.get("short")) if x)}
+    if meta.get("unreadable"):
+        row["unreadable"] = True
+    if meta.get("short"):
+        row["short"] = meta["short"]
+    return row
 
 
 def pages(ctx, spec):
@@ -57,13 +67,14 @@ async def scrape_source(ctx, src, spec, base):
             await asyncio.sleep(spec["delay"])  # polite spacing for sites that rate-limit
         expect = base.get((src, url), health.BROKEN_MIN) >= health.BROKEN_MIN  # unknown page: assume items
         for attempt in range(len(backoff) + 1):
-            s, items = await fetch()
-            retry = not items and s not in (404, 410) and (s != 200 or expect)
+            s, items, *meta = await fetch()
+            meta = meta[0] if meta else {}
+            retry = not items and s not in (404, 410) and (s != 200 or expect or meta.get("unreadable"))
             if not retry or attempt == len(backoff):
                 break
             await asyncio.sleep(backoff[attempt])
         blocked_run = blocked_run + 1 if (not items and s in (403, 429, None)) else 0
-        coverage.append(cov(src, url, s, len(items), f"{attempt} retries" if attempt else ""))
+        coverage.append(cov(src, url, s, len(items), f"{attempt} retries" if attempt else "", meta))
         found += items
     for it in found:
         it["source"] = src

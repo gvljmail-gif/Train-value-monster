@@ -25,7 +25,7 @@ Needs `pip install playwright beautifulsoup4 lxml`; uses the preinstalled Chromi
 | END. | Shopify JSON: `nike`, `air-jordan` (all prices, filtered to men's footwear) | verified |
 | JD Sports | Algolia search XHR captured from the site | verified (in-stock size list) |
 | ASOS | Search pages; candidates checked on the product page (`isInStock` per variant) | verified (product page) |
-| Foot Locker UK | Search pages; candidates checked on the product page ("Sold Out" size buttons) | verified (product page) |
+| Foot Locker UK | Search pages read from the embedded server state (`STATE_FROM_SERVER.search`), with Hybris facets (`:relevance:gender:Men:productTypes:Shoes:saleProduct:True`); candidates checked on the product page ("Sold Out" size buttons) | verified (product page) |
 | Nike UK | Search pages; candidates checked on the product page (schema.org InStock offers) | verified (product page) |
 | Very | Search pages, current price only (no was-price shown), so measured against typical RRP | prices only |
 | Onitsuka Tiger UK | Magento listing/search pages | prices only |
@@ -37,6 +37,12 @@ Needs `pip install playwright beautifulsoup4 lxml`; uses the preinstalled Chromi
 What changed on 24 Oct and why: size? (21 Oct) and END. (10-21 Oct) moved to Shopify, which broke their HTML
 parsers; Footpatrol started returning 403 to Playwright's non-browser `ctx.request` (8 Oct). JSON endpoints are now
 loaded as browser pages (`common.fetch_json`). Very's Akamai protection blocks after one or two searches.
+
+8 Nov: Foot Locker's search grid often fails to render client-side (empty grid or an "All Products" page) although
+the page's server state holds every result, so the scraper reads the state instead of the DOM. The server ignores
+`currentPage`; queries with more than 48 results are re-fetched sorted price-asc and price-desc. Scrapers can now
+return a third value, `meta`: `unreadable` (page loaded, nothing parseable) and `short` (results cut off, e.g. a
+later Shopify page 403'd) both show in the coverage table instead of passing as ok.
 
 ## Rules
 - Retail deal = at least 35% below typical RRP (`rules.py`) AND UK 8.5 or 9 confirmed in stock -> Live lane.

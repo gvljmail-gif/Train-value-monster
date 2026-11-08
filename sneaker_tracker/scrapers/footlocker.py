@@ -1,40 +1,103 @@
-"""Foot Locker UK listing pages. Prices from cards; deal candidates are stock-checked on the product page,
-whose size buttons are marked "Sold Out" when a size has no stock."""
+"""Foot Locker UK search results, read from the server-rendered page state, not the product grid.
+
+Every search page embeds its full result set in `window.footlocker = { STATE_FROM_SERVER: {...} }` under
+`search` (products with price/originalPrice, pagination, facets). The visible grid is drawn from that state
+by client-side code that often fails to draw it (Nov 2026: 'nike dunk', 'air force 1' and 'air max 95'
+came back as an empty grid or an 'All Products' page while the state held all 24-129 results), which the old
+DOM parser read as zero items. The state is there whether or not the grid renders.
+
+Queries use the site's own SAP Hybris facet syntax, `<terms>:<sort>:<facet>:<value>...`, e.g.
+`air max 90:relevance:gender:Men:saleProduct:True`, so men's sale results fit on one 48-item page. The
+server ignores `currentPage`, so a query with more results than one page is fetched again sorted
+price-asc and price-desc and the pages are merged (covers up to 2 x 48).
+
+Deal candidates are stock-checked on the product page, whose size buttons are marked "Sold Out".
+"""
 import json
 import re
+from urllib.parse import quote
 from bs4 import BeautifulSoup
-from .common import classify, fetch_html, norm_uk, num, pct
+from .common import classify, fetch_html, norm_uk, pct
 
 BASE = "https://www.footlocker.co.uk"
+IMG = "?wid=250&hei=250"  # same rendition the grid used, so already-uploaded photos are reused
 
 
-def parse_list(html):
-    soup, out = BeautifulSoup(html, "lxml"), []
-    for a in soup.select("a[data-productcard]"):
-        try:
-            meta = json.loads(a["data-productcard"])
-        except Exception:
+def search_url(query):
+    return f"{BASE}/en/search?query={quote(query, safe='')}"
+
+
+def page_state(html):
+    """The `search` object from the embedded server state, or None if the page has none (challenge page,
+    markup change)."""
+    i = html.find("STATE_FROM_SERVER")
+    j = html.find("{", i) if i >= 0 else -1
+    if j < 0:
+        return None
+    try:
+        state = json.JSONDecoder().raw_decode(html, j)[0]
+    except ValueError:
+        return None
+    s = state.get("search") if isinstance(state, dict) else None
+    return s if isinstance(s, dict) and isinstance(s.get("products"), list) else None
+
+
+def slug(name):
+    """'Nike Air Max 90 - Men Shoes' -> 'nike-air-max-90-men-shoes', as the site's own product links: apostrophes
+    dropped ("World's" -> 'worlds'), any other run of punctuation becomes one hyphen ('TL 2.5' -> 'tl-2-5')."""
+    return re.sub(r"[^a-z0-9]+", "-", re.sub(r"['\u2019`]", "", name.lower())).strip("-")
+
+
+def _value(d):
+    return d.get("value") if isinstance(d, dict) and isinstance(d.get("value"), (int, float)) else None
+
+
+def parse_products(products):
+    out = []
+    for p in products:
+        name, sku, price = (p.get("name") or "").strip(), p.get("sku"), _value(p.get("price"))
+        if not (name and sku and price):
             continue
-        txt = a.get_text(" ", strip=True)
-        spans = a.select('[data-testid="ProductPrice"] span[aria-hidden="true"]')
-        prices = [num(s.get_text()) for s in spans if "£" in s.get_text()]
-        if not prices:
-            continue
-        price, rrp = prices[0], (prices[1] if len(prices) > 1 else prices[0])
-        name = re.sub(r"\s+", " ", meta.get("name", "")) + " " + txt.split("Men")[0].strip()
-        card = a.find_parent(attrs={"data-testid": re.compile("ProductCard")}) or a.parent
-        img = card.select_one("img") if card else None
-        full = a.select_one("span.relative")
-        full = re.sub(r"\s+", " ", full.get_text(" ", strip=True)) if full else meta.get("name", "").strip()
-        out.append({"name": full, "url": BASE + a["href"], "line": classify(txt + " " + meta.get("name", "")),
-                    "image": (img.get("src") if img and (img.get("src") or "").startswith("http") else None),
-                    "rrp": rrp, "price": price, "discount_pct": pct(rrp, price), "stock_verified": False})
+        rrp = _value(p.get("originalPrice")) or price
+        style = ((p.get("baseOptions") or [{}])[0].get("selected") or {}).get("style") or ""
+        full = name.replace(" - ", " ") + (" " + style.replace("-", " - ") if style else "")
+        img = next((i.get("url") for i in p.get("images") or [] if i.get("url")), None)
+        out.append({"name": full, "url": f"{BASE}/en/product/{slug(name)}/{sku}.html", "line": classify(name),
+                    "image": (img.split("?")[0] + IMG) if img else None,
+                    "rrp": rrp, "price": float(price), "discount_pct": pct(rrp, price), "stock_verified": False})
     return [o for o in out if o["line"]]
 
 
-async def scrape_list(ctx, url):
-    s, h = await fetch_html(ctx, url, 5000)
-    return s, (parse_list(h) if h else [])
+def parse_list(html):
+    """(items, total results the site reported, skus on this page) for one search page;
+    ([], None, set()) if the page carries no search state."""
+    s = page_state(html)
+    if s is None:
+        return [], None, set()
+    return (parse_products(s["products"]), (s.get("pagination") or {}).get("totalResults"),
+            {p.get("sku") for p in s["products"]})
+
+
+def _resorted(query, sort):
+    terms, _, rest = query.partition(":")
+    parts = rest.split(":") if rest else ["relevance"]
+    return ":".join([terms, sort] + parts[1:])
+
+
+async def scrape_search(ctx, query):
+    """(status, items, meta). meta: `unreadable` when the page loaded without a search state (markup changed
+    or a challenge page), `short` when the site reported more results than could be fetched."""
+    s, h = await fetch_html(ctx, search_url(query), 1500)  # state is in the HTML; no need to wait for the grid
+    items, total, skus = parse_list(h) if h else ([], None, set())
+    if s == 200 and total is None:
+        return s, [], {"unreadable": True}
+    if total and total > len(skus):  # more than one page: the server ignores currentPage, so re-sort instead
+        for sort in ("price-asc", "price-desc"):
+            _, h2 = await fetch_html(ctx, search_url(_resorted(query, sort)), 1500)
+            more, _, more_skus = parse_list(h2) if h2 else ([], None, set())
+            items, skus = items + more, skus | more_skus
+    meta = {"short": f"{len(skus)} of {total} results"} if total and len(skus) < total else {}
+    return s, list({i["url"]: i for i in items}.values()), meta
 
 
 def parse_sizes(html):
