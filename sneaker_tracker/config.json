@@ -40,14 +40,14 @@
       "stock": "verified",
       "type": "jd",
       "queries": [
-        "air max 90",
-        "air max 95",
-        "air max 97",
-        "air jordan",
+        "air max 90/sale",
+        "air max 95/sale",
+        "air max 97/sale",
+        "air jordan/sale",
         "air jordan 2",
-        "air force 1",
-        "nike dunk",
-        "killshot"
+        "air force 1/sale",
+        "nike dunk/sale",
+        "killshot/sale"
       ]
     },
     "asos": {
@@ -100,22 +100,6 @@
         "https://www.nike.com/gb/w?q=nike%20dunk&vst=nike%20dunk",
         "https://www.nike.com/gb/w?q=killshot&vst=killshot"
       ]
-    },
-    "very": {
-      "label": "Very",
-      "stock": "prices only",
-      "was_price": false,
-      "type": "very",
-      "queries": [
-        "nike air max 90",
-        "nike air force 1",
-        "nike dunk",
-        "nike air max 95",
-        "nike air max 97"
-      ],
-      "delay": 10,
-      "backoff": [],
-      "breaker": 2
     },
     "onitsuka": {
       "label": "Onitsuka Tiger UK",
@@ -171,13 +155,27 @@
     "Air Max 90": 145,
     "Air Max 95": 185,
     "Air Max 97": 185,
+    "Air Max (?:Plus|Tuned)": 175,
+    "Air Max TL 2\\.5": 165,
+    "Air Max Moto": 125,
+    "Air Max DN": 175,
+    "Air Max 270": 145,
+    "Air Max Craze": 155,
+    "Air Max (?:III|3)(?![\\d.])": 145,
+    "Air Max 1(?![\\d.])": 155,
     "Air Force 1": 115,
-    "Dunk": 115
+    "Dunk High": 145,
+    "Dunk": 115,
+    "(?:jordan|\\baj)\\s*(?:air\\s*)?(?:retro\\s*)?1(?![\\d.]).*\\blow\\b": 130,
+    "(?:jordan|\\baj)\\s*(?:air\\s*)?(?:retro\\s*)?1(?![\\d.]).*\\bmid\\b": 135,
+    "(?:jordan|\\baj)\\s*(?:air\\s*)?(?:retro\\s*)?1(?![\\d.]).*\\bhigh\\b": 175,
+    "(?:jordan|\\baj)\\s*(?:air\\s*)?(?:retro\\s*)?(?:[3-9]|1[0-4])(?![\\d.])": 190
   },
   "rrp_tolerance": 1.15,
-  "min_sources_ok": 9,
+  "min_sources_ok": 8,
   "max_check_cards": 24,
   "new_window_days": 7,
-  "ping_on_live": "any",
-  "ping_on_aj2": "new"
+  "ping_on_live": "new",
+  "ping_on_aj2": "new",
+  "alert_repeat_days": 7
 }

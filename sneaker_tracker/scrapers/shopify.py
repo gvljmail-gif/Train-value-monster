@@ -6,7 +6,7 @@ fetched as browser pages (common.fetch_json) because non-browser requests get 40
 """
 import asyncio
 
-from .common import adult_mens, classify, fetch_json, norm_uk, num, pct
+from .common import adult_mens, classify, fetch_json, norm_uk, num, pct, style_code
 
 VENDORS = {"nike", "jordan", "air jordan", "onitsuka tiger", "asics"}
 PAGE_SIZE = 250
@@ -49,9 +49,13 @@ def parse_products(products, link_base, sizes):
         price = min(num(v["price"]) for v in target)
         rrp = max([num(v.get("compare_at_price")) or 0 for v in target] + [price])
         img = (p.get("images") or [{}])[0].get("src")
+        style = (style_code(p.get("handle")) or style_code(p.get("body_html"))
+                 or next(filter(None, (style_code(v.get("sku")) for v in variants)), None))
         out.append({"name": name, "url": f"{link_base}/products/{p['handle']}", "line": line,
                     "image": ("https:" + img if img and img.startswith("//") else img),
-                    "rrp": rrp, "price": price, "discount_pct": pct(rrp, price),
+                    "rrp": rrp, "price": price, "discount_pct": pct(rrp, price), "style": style,
+                    # size? and Footpatrol share JD Group's catalogue: the same numeric handle is the same product
+                    "group": f"jd-group:{p['handle']}" if str(p.get("handle", "")).isdigit() else None,
                     "all_sizes": by_size, "stock_verified": bool(by_size)})
     return out
 

@@ -2,12 +2,14 @@
 
 Deal = price at least `deal_threshold_pct` below typical RRP. The retailer's was-price is used, capped at
 `rrp_tolerance` x the reference RRP for the model (stops inflated was-prices). Sources that never show a
-was-price (`"was_price": false`, e.g. Very) are measured against the reference RRP directly.
+was-price (`"was_price": false`; none at present since Very was dropped) are measured against the reference RRP directly.
 Live = deal AND stock confirmed in UK 8.5 or 9 from a real stock signal. Otherwise: Check stock.
 """
 import json
 import pathlib
 import re
+
+from .scrapers.common import style_code
 
 ROOT = pathlib.Path(__file__).parent
 CFG = json.loads((ROOT / "config.json").read_text())
@@ -20,9 +22,10 @@ def label(src):
 
 
 def ref_for(p):
-    n = p["name"].lower()
+    """Typical RRP for the model: the first `ref_rrp` pattern (case-insensitive regex, most specific first)
+    found in the name, else an entry named after the item's line."""
     for k, v in CFG["ref_rrp"].items():
-        if k.lower() in n:
+        if re.search(k, p["name"], re.I):
             return v
     return CFG["ref_rrp"].get(p.get("line"))
 
@@ -53,14 +56,13 @@ def has_size(p):
     return any((p.get("sizes") or {}).values())
 
 
-STYLE = re.compile(r"(?<![a-z0-9])([a-z]{2}\d{4}-\d{3})(?![0-9])", re.I)
-
-
 def key(p):
-    """Groups the same shoe across retailers by Nike style code (e.g. IB7862-100, in END./Nike URLs).
-    Without a code the item stands alone: names alone merged different colourways (END. names omit colour)."""
-    m = STYLE.search(p["url"]) or STYLE.search(p["name"])
-    return m.group(1).upper() if m else p["url"]
+    """Groups the same shoe across retailers by Nike style code (e.g. IB7862-100): the item's `style` (JD's
+    listing, Foot Locker's product page, size?/Footpatrol/END. product data) or a code in its URL (Nike, END.).
+    size? and Footpatrol items without a code group by their shared product id (`group`).
+    Without either the item stands alone: names alone merged different colourways (END. names omit colour).
+    ASOS has none it can be trusted for (its pages only carry codes from other colourways' reviews)."""
+    return p.get("style") or style_code(p["url"]) or style_code(p["name"]) or p.get("group") or p["url"]
 
 
 def lanes(products):

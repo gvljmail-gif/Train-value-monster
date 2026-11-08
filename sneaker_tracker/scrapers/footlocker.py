@@ -11,13 +11,14 @@ Queries use the site's own SAP Hybris facet syntax, `<terms>:<sort>:<facet>:<val
 server ignores `currentPage`, so a query with more results than one page is fetched again sorted
 price-asc and price-desc and the pages are merged (covers up to 2 x 48).
 
-Deal candidates are stock-checked on the product page, whose size buttons are marked "Sold Out".
+Deal candidates are stock-checked on the product page, whose size buttons are marked "Sold Out"; the same page
+gives the Nike style code (Supplier-sku), used to group the shoe with other retailers' listings.
 """
 import json
 import re
 from urllib.parse import quote
 from bs4 import BeautifulSoup
-from .common import classify, fetch_html, norm_uk, pct
+from .common import classify, fetch_html, norm_uk, pct, style_code
 
 BASE = "https://www.footlocker.co.uk"
 IMG = "?wid=250&hei=250"  # same rendition the grid used, so already-uploaded photos are reused
@@ -111,7 +112,16 @@ def parse_sizes(html):
     return sizes
 
 
+SUPPLIER = re.compile(r'Supplier-sku #:\s*(?:<!-- -->)?\s*([^<\s]+)|"supplierSkus":\["([^"]+)"')
+
+
+def parse_style(html):
+    """Nike style code from the product page ('Supplier-sku #: CN8490-100', also vendorAttributes.supplierSkus)."""
+    m = SUPPLIER.search(html or "")
+    return style_code(m.group(1) or m.group(2)) if m else None
+
+
 async def check_sizes(ctx, url):
     s, h = await fetch_html(ctx, url, 3000)
     sizes = parse_sizes(h) if h else {}
-    return {"http": s, "sizes": sizes, "verified": bool(sizes)}
+    return {"http": s, "sizes": sizes, "verified": bool(sizes), "style": parse_style(h)}

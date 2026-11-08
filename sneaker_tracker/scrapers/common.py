@@ -107,13 +107,25 @@ def norm_uk(label):
 LINES = [  # first match wins; order matters (priority Air Max first)
     ("Air Max 90/95/97", re.compile(r"air\s*max\s*(90|95|97)\b", re.I)),
     ("Air Max", re.compile(r"air\s*max", re.I)),
-    ("Air Jordan 2", re.compile(r"(air\s*)?jordan\s*(air\s*)?2(?![\d.])|aj\s*2(?![\d.])", re.I)),
-    ("Jordan", re.compile(r"jordan", re.I)),
+    ("Air Jordan 2", re.compile(r"(air\s*)?jordan\s*(air\s*)?(retro\s*)?2(?![\d.])|\baj\s*2(?![\d.])", re.I)),
+    # numbered Air Jordans only ('Air Jordan 1 Low', 'Jordan AJ5 Retro', 'Jordan Retro 3', 'Jordan Air 9'); signature
+    # and lifestyle models (Luka, Tatum, Zion, Trunner, Spizike, MVP, Stadium 90) are left out
+    ("Jordan", re.compile(r"(air\s*)?jordan\s*(air\s*)?(retro\s*)?\d{1,2}(?![\d.])|\baj\s*\d{1,2}(?![\d.])", re.I)),
     ("Air Force 1", re.compile(r"air\s*force\s*1|\baf1\b", re.I)),
     ("Dunk", re.compile(r"dunk", re.I)),
     ("Killshot", re.compile(r"killshot", re.I)),
     ("Onitsuka Tiger", re.compile(r"onitsuka|mexico\s*66|moage|tokuten|edr\s*78|colorado\s*(eighty|85)", re.I)),
 ]
+
+
+STYLE = re.compile(r"(?<![a-z0-9])((?:[a-z]{2}\d{4}|\d{6})-\d{3})(?![0-9])", re.I)
+
+
+def style_code(text):
+    """Nike style code ('CN8490-100', retro '308308-161') in a URL, handle or text, upper-cased; else None.
+    The same code across retailers means the same shoe and colourway, so deals are grouped by it."""
+    m = STYLE.search(text or "")
+    return m.group(1).upper() if m else None
 
 
 def classify(name):

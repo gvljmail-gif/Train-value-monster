@@ -19,11 +19,11 @@ import json
 
 from . import health
 from .rules import CFG, ROOT, SIZES, is_candidate, label, lanes
-from .scrapers import asos, footlocker, goat, jd, nike, onitsuka, shopify, very, vinted
+from .scrapers import asos, footlocker, goat, jd, nike, onitsuka, shopify, vinted
 from .scrapers.common import adult_mens, browser_context
 
 LIST_MODS = {"nike": nike, "onitsuka": onitsuka}
-SEARCH_MODS = {"jd": jd, "asos": asos, "footlocker": footlocker, "very": very, "vinted": vinted, "goat": goat}
+SEARCH_MODS = {"jd": jd, "asos": asos, "footlocker": footlocker, "vinted": vinted, "goat": goat}
 SIZE_CHECK = {"nike": nike, "footlocker": footlocker, "asos": asos}  # stock read from the product page
 CHECKS_PER_SOURCE = 3  # simultaneous product-page checks per retailer
 
@@ -89,7 +89,7 @@ async def verify_sizes(ctx, it, gates):
         return
     mod = SIZE_CHECK.get(it["source"])
     if not mod:
-        it["sizes"] = {s: None for s in SIZES}  # Very / Onitsuka: prices only
+        it["sizes"] = {s: None for s in SIZES}  # Onitsuka: prices only
         return
     async with gates[it["source"]]:
         r = await mod.check_sizes(ctx, it["url"])
@@ -103,6 +103,8 @@ async def verify_sizes(ctx, it, gates):
         it["womens_sizing"] = True
     if r.get("image") and not it.get("image"):
         it["image"] = r["image"]
+    if r.get("style") and not it.get("style"):
+        it["style"] = r["style"]
 
 
 def keep(it):
@@ -140,6 +142,7 @@ async def main():
             c["verified"] += bool(it.get("stock_verified"))
     snap = {"date": today, "coverage": coverage, "stock_checks": checks, "products": list(products.values())}
     h = health.assess(today, coverage, checks)  # also stamps each coverage row with its state
+    snap["alerts"] = h["alerts"]  # problem keys alerted today; the next runs won't repeat them for a week
     (ROOT / "data" / f"{today}.json").write_text(json.dumps(snap, indent=1))
     (ROOT / "data" / "latest.json").write_text(json.dumps(snap, indent=1))
     summarise(snap, h)
@@ -150,7 +153,8 @@ def summarise(snap, h):
     live, check = lanes(P)
     aj2_retail = [p for p in P if not p.get("resale") and p["line"] == "Air Jordan 2" and any((p.get("sizes") or {}).values())]
     aj2_resale = [p for p in P if p.get("resale") and p["source"] == "vinted"]
-    state = f"DEGRADED ({', '.join(h['reasons'])}): {h['msg']}" if h["degraded"] else f"healthy: {h['msg']}"
+    state = (f"DEGRADED ({', '.join(h['reasons'])}): {h['msg']}" if h["degraded"] else
+             f"known issues, already alerted: {h['msg']}" if h["issues"] else f"healthy: {h['msg']}")
     print(f"{h['up']}/{h['counted']} sources up | {len(P)} items | {len(live)} LIVE | {len(check)} check-stock | "
           f"AJ2: {len(aj2_retail)} retail in size, {len(aj2_resale)} resale | {state}")
     for src, v in h["sources"].items():

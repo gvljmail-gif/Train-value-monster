@@ -8,7 +8,8 @@ Images are never hotlinked: the Claude run uploads out/img/* to the artifact's a
 
 summary.json drives notifications:
   ping      live deals / Air Jordan 2 listings: any, or only new ones (config ping_on_live, ping_on_aj2 = "any"|"new")
-  degraded  the tracker itself needs attention (health.py); health_msg says what, in one line
+  degraded  the tracker has a new problem (health.py): first seen, or not alerted for a week; health_msg says
+            what, in one line (new problems first). health_issues: any problem at all, new or already alerted
 """
 import asyncio
 import datetime
@@ -248,10 +249,11 @@ def render(snap, recent, assets):
     summary = {"date": snap["date"], "live": len(cl), "new_live": len(new_urls),
                "check": len(cc) + len(rows), "aj2_listings": aj_total, "new_aj2": len(new_aj2),
                "sources_ok": h["up"], "sources_total": h["counted"],
-               "degraded": h["degraded"], "health_reasons": h["reasons"], "health_msg": h["msg"],
+               "degraded": h["degraded"], "health_issues": h["issues"], "health_reasons": h["reasons"],
+               "health_msg": h["msg"],
                "ping": live_ping > 0 or aj_ping > 0}
     banner = ""
-    if h["degraded"]:
+    if h["issues"]:
         banner = f'<p class="alert"><b>Tracker needs attention</b> ({esc(", ".join(h["reasons"]))}): {esc(h["msg"])}.</p>'
     elif h["down"]:
         banner = f'<p class="alert">{esc(h["msg"])}.</p>'

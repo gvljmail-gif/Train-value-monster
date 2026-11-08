@@ -11,9 +11,13 @@ Each page gets a state:
            needs fixing (never self-heals)
 A row marked `short` (results cut off mid-way, e.g. a later Shopify page 403'd) makes its source 'partial'.
 Each source is up (some page ok), down (none), or expected (config `expected_blocked`, e.g. Schuh).
-The run is degraded when a stock-verified source is down, any page looks changed, a retailer's product-page
-stock check fails on every item, or fewer than `min_sources_ok` sources are up. The health push keys off that.
+A problem is a stock-verified source down, a page that looks changed, a retailer's product-page stock check
+failing on every item, or fewer than `min_sources_ok` sources up. Problems are always shown on the page, but the
+run is `degraded` (the health push) only for a problem not already alerted in the last `alert_repeat_days`
+(each snapshot records the problem keys it alerted in `alerts`): once when it starts, then weekly while it lasts.
 """
+import datetime
+import functools
 import json
 import statistics
 
@@ -23,10 +27,26 @@ HISTORY_DAYS = 60
 BROKEN_MIN = 5  # median items on good days at or above which an empty 200 means "changed", not "quiet"
 
 
+@functools.lru_cache(maxsize=4)
+def _snapshots(before):
+    """(date, coverage, alerts) of up to HISTORY_DAYS snapshots dated before `before`, newest first."""
+    files = sorted((p for p in (ROOT / "data").glob("20*.json") if p.stem < before), reverse=True)[:HISTORY_DAYS]
+    out = []
+    for p in files:
+        snap = json.loads(p.read_text())
+        out.append((p.stem, snap["coverage"], snap.get("alerts", [])))
+    return tuple(out)
+
+
 def history(before):
     """Coverage lists of up to HISTORY_DAYS snapshots dated before `before`, newest first."""
-    files = sorted((p for p in (ROOT / "data").glob("20*.json") if p.stem < before), reverse=True)[:HISTORY_DAYS]
-    return [(p.stem, json.loads(p.read_text())["coverage"]) for p in files]
+    return [(d, cov) for d, cov, _ in _snapshots(before)]
+
+
+def recent_alerts(before, days):
+    """Problem keys already alerted in the `days` days before `before` (from each snapshot's `alerts`)."""
+    start = datetime.date.fromisoformat(before) - datetime.timedelta(days=days)
+    return {k for d, _, alerts in _snapshots(before) if datetime.date.fromisoformat(d) > start for k in alerts}
 
 
 def baselines(hist):
@@ -108,28 +128,36 @@ def assess(date, coverage, checks=None):
     changed = [s for s in counted if sources[s]["changed_pages"]]
     verified_down = [s for s in down if sources[s]["verified"]]
     prev_up = _up(hist[0][1]) if hist else set()
-    reasons = []
-    if verified_down:
-        reasons.append("stock-verified source down")
-    if changed:
-        reasons.append("site change needs a scraper fix")
     failing = [s for s, c in (checks or {}).items() if c["tried"] >= 3 and not c["verified"]]
-    if failing:
-        reasons.append("product-page stock check failing")
+    problems = []  # (alert key, reason, text): anything here is shown on the page every run
+    def down_text(s):
+        d = sources[s]["days_down"]
+        return f"{label(s)} down {'today' if d == 1 else f'{d} days'} ({sources[s]['why']})"
+
+    for s in verified_down:
+        problems.append((f"down:{s}", "stock-verified source down", down_text(s)))
+    for s in changed:
+        problems.append((f"changed:{s}", "site change needs a scraper fix",
+                         f"{label(s)}: {sources[s]['changed_pages']} page(s) look changed"))
+    for s in failing:
+        problems.append((f"checks:{s}", "product-page stock check failing",
+                         f"{label(s)} stock check failing (0/{checks[s]['tried']} product pages)"))
     if len(up) < CFG["min_sources_ok"]:
-        reasons.append(f"only {len(up)} of {len(counted)} sources up (minimum {CFG['min_sources_ok']})")
-    parts = []
-    for s in sorted(set(down) | set(changed), key=lambda s: (s not in down, -sources[s]["days_down"])):
-        v = sources[s]
-        if s in down:
-            d = v["days_down"]
-            parts.append(f"{label(s)} down {'today' if d == 1 else f'{d} days'} ({v['why']})")
-        else:
-            parts.append(f"{label(s)}: {v['changed_pages']} page(s) look changed")
-    parts += [f"{label(s)} stock check failing (0/{checks[s]['tried']} product pages)" for s in failing]
+        problems.append(("few-sources", f"only {len(up)} of {len(counted)} sources up (minimum {CFG['min_sources_ok']})",
+                         f"only {len(up)} of {len(counted)} sources up"))
+    # alert once, then again only every alert_repeat_days while it persists (size?/Footpatrol flap for days)
+    seen = recent_alerts(date, CFG.get("alert_repeat_days", 7))
+    fresh = [p for p in problems if p[0] not in seen]
+    ongoing = [p for p in problems if p[0] in seen]
+    other_down = [down_text(s) for s in down if s not in verified_down]  # e.g. Vinted: shown, never alerted
+    parts = [p[2] for p in fresh] + [p[2] for p in ongoing] + other_down
+    msg = "; ".join(p[2] for p in fresh) or "; ".join(parts)
+    if fresh and (ongoing or other_down):
+        msg += " (also ongoing: " + "; ".join([p[2] for p in ongoing] + other_down) + ")"
     return {
         "sources": sources, "up": len(up), "counted": len(counted),
         "down": down, "newly_down": [s for s in down if s in prev_up], "changed": changed, "checks_failing": failing,
-        "degraded": bool(reasons), "reasons": reasons,
-        "msg": "; ".join(parts) if parts else "all sources up",
+        "degraded": bool(fresh), "alerts": [p[0] for p in fresh],
+        "issues": bool(problems), "reasons": list(dict.fromkeys(p[1] for p in problems)),
+        "msg": msg if parts else "all sources up",
     }
