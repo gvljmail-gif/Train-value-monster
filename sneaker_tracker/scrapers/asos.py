@@ -10,10 +10,15 @@ PRICE = re.compile(r"Original price:?\s*£([\d.,]+),?\s*current price:?\s*£([\d
 def parse_list(html):
     out = []
     for a in BeautifulSoup(html, "lxml").select('a[href*="/prd/"]'):
-        label = a.get("aria-label", "")
-        if not label:
+        # Cards used to carry the whole label on the anchor; now the name and the price label are
+        # separate elements inside it (anchor aria-label kept as a fallback).
+        desc = a.select_one('[class*="productDescription"]')
+        pel = a.select_one('[aria-label*="rice"]')
+        label = a.get("aria-label", "") or (pel.get("aria-label", "") if pel else "")
+        name = (desc.get_text(" ", strip=True) if desc else
+                label.split(", Original price")[0].split(", current price")[0].split(", Current price")[0])
+        if not name or not label:
             continue
-        name = label.split(", Original price")[0].split(", current price")[0].split(", Current price")[0]
         m = PRICE.search(label)
         if m:
             rrp, price = num(m.group(1)), num(m.group(2))
